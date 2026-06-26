@@ -18,7 +18,7 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
     organizationId,
     createdById,
     isPrivate: isPrivate === 'true' || isPrivate === true,
-    metadata: metadata ? JSON.parse(metadata) : null,
+    metadata: metadata ? JSON.parse(metadata) : undefined,
   };
 
   const document = await prisma.document.create({ data });

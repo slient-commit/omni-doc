@@ -1,11 +1,7 @@
 import { useRef, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,42 +20,47 @@ function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-export function UploadDocumentDialog({
-  open,
-  onOpenChange,
-  folderId,
-}: UploadDocumentDialogProps) {
-  const [file, setFile] = useState<File | null>(null);
+export function UploadDocumentDialog({ open, onOpenChange, folderId }: UploadDocumentDialogProps) {
+  const [files, setFiles] = useState<File[]>([]);
   const [documentDate, setDocumentDate] = useState(todayISO());
   const [isPrivate, setIsPrivate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadDocument = useUploadDocument();
+  // ponytail: track pending count instead of per-file state, upgrade to progress bars if needed
+  const [pending, setPending] = useState(0);
 
   const resetForm = () => {
-    setFile(null);
+    setFiles([]);
     setDocumentDate(todayISO());
     setIsPrivate(false);
+    setPending(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
     uploadDocument.reset();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!files.length) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("documentDate", documentDate);
-    formData.append("isPrivate", String(isPrivate));
-    if (folderId != null) {
-      formData.append("folderId", String(folderId));
-    }
+    setPending(files.length);
+    let done = 0;
 
-    uploadDocument.mutate(formData, {
-      onSuccess: () => {
-        resetForm();
-        onOpenChange(false);
-      },
+    files.forEach((file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentDate", documentDate);
+      formData.append("isPrivate", String(isPrivate));
+      if (folderId != null) formData.append("folderId", String(folderId));
+
+      uploadDocument.mutate(formData, {
+        onSettled: () => {
+          done++;
+          if (done === files.length) {
+            resetForm();
+            onOpenChange(false);
+          }
+        },
+      });
     });
   };
 
@@ -75,22 +76,26 @@ export function UploadDocumentDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UploadIcon className="size-4" />
-              Upload Document
+              Upload Documents
             </DialogTitle>
             <DialogDescription>
-              Select a file and set its metadata.
+              Select one or more files to upload.
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="doc-file">File</Label>
+              <Label htmlFor="doc-file">Files</Label>
               <Input
                 ref={fileInputRef}
                 id="doc-file"
                 type="file"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
               />
+              {files.length > 1 && (
+                <p className="text-xs text-muted-foreground">{files.length} files selected</p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -109,7 +114,7 @@ export function UploadDocumentDialog({
                 checked={isPrivate}
                 onCheckedChange={(checked) => setIsPrivate(checked === true)}
               />
-              <Label htmlFor="doc-private">Private document</Label>
+              <Label htmlFor="doc-private">Private</Label>
             </div>
           </div>
 
@@ -120,14 +125,9 @@ export function UploadDocumentDialog({
           )}
 
           <DialogFooter className="mt-4">
-            <Button
-              type="submit"
-              disabled={!file || uploadDocument.isPending}
-            >
-              {uploadDocument.isPending && (
-                <Loader2Icon className="size-4 animate-spin" />
-              )}
-              Upload
+            <Button type="submit" disabled={!files.length || pending > 0}>
+              {pending > 0 && <Loader2Icon className="size-4 animate-spin" />}
+              {pending > 0 ? `Uploading (${pending})...` : `Upload${files.length > 1 ? ` (${files.length})` : ""}`}
             </Button>
           </DialogFooter>
         </form>

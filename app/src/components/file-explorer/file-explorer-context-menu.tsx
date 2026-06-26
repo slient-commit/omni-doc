@@ -3,12 +3,13 @@ import {
   ContextMenu, ContextMenuTrigger, ContextMenuContent,
   ContextMenuItem, ContextMenuSeparator,
 } from '@/components/ui/context-menu';
-import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore } from 'lucide-react';
+import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore, Settings2 } from 'lucide-react';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
 import { useDeleteDocument, useRestoreDocument } from '@/hooks/use-document-queries';
 import { RenameDialog } from '@/components/dialogs/rename-dialog';
 import { ConfirmDeleteDialog } from '@/components/dialogs/confirm-delete-dialog';
 import { ShareDialog } from '@/components/dialogs/share-dialog';
+import { EditPropertiesDialog } from '@/components/dialogs/edit-properties-dialog';
 import type { Folder, Document } from '@/types/documents';
 
 interface FileExplorerContextMenuProps {
@@ -25,6 +26,7 @@ export function FileExplorerContextMenu({
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [propsOpen, setPropsOpen] = useState(false);
 
   const deleteFolder = useDeleteFolder();
   const deleteDocument = useDeleteDocument();
@@ -75,6 +77,9 @@ export function FileExplorerContextMenu({
               <ContextMenuItem onSelect={() => setShareOpen(true)}>
                 <Share2 className="size-4" /> Share
               </ContextMenuItem>
+              <ContextMenuItem onSelect={() => setPropsOpen(true)}>
+                <Settings2 className="size-4" /> Properties
+              </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem variant="destructive" onSelect={handleSoftDelete}>
                 <Trash2 className="size-4" /> Delete
@@ -87,6 +92,7 @@ export function FileExplorerContextMenu({
       <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={type} id={item.id} currentName={itemName} />
       <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={item.id} name={itemName} permanent />
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={type} id={item.id} />
+      <EditPropertiesDialog open={propsOpen} onOpenChange={setPropsOpen} type={type} item={item} />
     </>
   );
 }
