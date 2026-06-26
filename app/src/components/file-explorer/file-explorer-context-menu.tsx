@@ -48,7 +48,7 @@ export function FileExplorerContextMenu({
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger className="display-contents" style={{ display: 'contents' }}>{children}</ContextMenuTrigger>
+        <ContextMenuTrigger>{children}</ContextMenuTrigger>
         <ContextMenuContent>
           {isTrash ? (
             <>
