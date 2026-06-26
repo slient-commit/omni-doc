@@ -14,6 +14,11 @@ services:
       #   mysql://user:pass@host.docker.internal:3306/omni_doc
       DATABASE_URL: ${DATABASE_URL}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-onboarding@resend.dev}
+      APP_URL: ${APP_URL:-http://localhost:8080}
     env_file:
       - .env
     networks:

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(json|js|mjs\\)$\")",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add separator avatar dropdown-menu alert skeleton sonner sidebar -y)",
+      "Bash(npx vite:*)",
+      "Read(//c/Users/Kamal/.claude/plugins/marketplaces/ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python scripts/search.py \"document management file explorer SaaS productivity tool\" --design-system -p \"omni-doc\")"
+    ]
+  }
+}

@@ -3,8 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  // "native" covers local dev; the debian target matches the Docker runtime
-  // (node:20-bookworm-slim => Debian 12 / OpenSSL 3.0).
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -13,13 +11,271 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example model — replace/extend with your own.
+// ---------------------------------------------------------------------------
+// Organization
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(100)
+  storagePath String   @db.VarChar(500) // physical folder root for this org's files
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users      User[]
+  roles      Role[]
+  categories Category[]
+  documents  Document[]
+  folders    Folder[]
+
+  @@map("organizations")
+}
+
+// ---------------------------------------------------------------------------
+// Roles & Permissions (fully configurable per organization)
+// ---------------------------------------------------------------------------
+
+model Role {
+  id             Int          @id @default(autoincrement())
+  name           String       @db.VarChar(100)
+  description    String?      @db.VarChar(255)
+  organizationId Int
+  isSystem       Boolean      @default(false) // true = Owner role, cannot be deleted/edited
+  isDefault      Boolean      @default(false) // auto-assigned to new members
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@unique([organizationId, name])
+  @@map("roles")
+}
+
+/// Seeded permission definitions (global, not per-org).
+model Permission {
+  id      Int    @id @default(autoincrement())
+  action  String @db.VarChar(50) // create, read, update, delete, manage
+  subject String @db.VarChar(50) // document, folder, category, user, role, organization, share_link
+
+  rolePermissions RolePermission[]
+
+  @@unique([action, subject])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// Users & Authentication
+// ---------------------------------------------------------------------------
+
+model User {
+  id             Int      @id @default(autoincrement())
+  email          String   @db.VarChar(255)
+  passwordHash   String   @db.VarChar(255)
+  firstName      String   @db.VarChar(100)
+  lastName       String   @db.VarChar(100)
+  organizationId Int
+  roleId         Int
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  documents       Document[]
+  folders         Folder[]
+  shareLinks      ShareLink[]
+  folderInvites   FolderInvite[]   @relation("InvitedToFolder")
+  documentInvites DocumentInvite[] @relation("InvitedToDocument")
+  sentFolderInvites   FolderInvite[]   @relation("SentFolderInvite")
+  sentDocumentInvites DocumentInvite[] @relation("SentDocumentInvite")
+  passwordResetTokens      PasswordResetToken[]
+  emailVerificationTokens  EmailVerificationToken[]
+
+  @@unique([email, organizationId])
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique @db.VarChar(255)
+  userId    Int
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique @db.VarChar(255)
+  userId    Int
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+model Category {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(100)
+  icon           String?  @db.VarChar(50)
+  color          String?  @db.VarChar(20)
+  parentId       Int?
+  organizationId Int
+
+  parent       Category?    @relation("CategoryTree", fields: [parentId], references: [id])
+  children     Category[]   @relation("CategoryTree")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documents    Document[]
+
+  @@map("categories")
+}
+
+// ---------------------------------------------------------------------------
+// Documents
+// ---------------------------------------------------------------------------
+
 model Document {
-  id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(255)
-  content   String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  originalName   String   @db.VarChar(255)
+  storedFilename String   @db.VarChar(255) // UUID-based name on disk
+  filePath       String   @db.VarChar(500) // relative to org storagePath
+  mimeType       String?  @db.VarChar(100)
+  fileSize       BigInt?
+  documentDate   DateTime @db.Date         // the date ON the document
+  categoryId     Int?
+  organizationId Int
+  createdById    Int
+  isPrivate      Boolean  @default(false)  // only owner can see/edit
+  metadata       Json?                     // flexible key-value data
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category     Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  documentFolders DocumentFolder[]
+  shareLinks      ShareLink[]
+  documentInvites DocumentInvite[]
 
   @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// Folders
+// ---------------------------------------------------------------------------
+
+model Folder {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(100)
+  parentId       Int?
+  organizationId Int
+  createdById    Int
+  isPrivate      Boolean  @default(false) // only owner can see/edit
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  parent       Folder?      @relation("FolderTree", fields: [parentId], references: [id])
+  children     Folder[]     @relation("FolderTree")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  documentFolders DocumentFolder[]
+  shareLinks      ShareLink[]
+  folderInvites   FolderInvite[]
+
+  @@map("folders")
+}
+
+/// Many-to-many: a document can live in multiple folders.
+model DocumentFolder {
+  documentId Int
+  folderId   Int
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@id([documentId, folderId])
+  @@map("document_folders")
+}
+
+// ---------------------------------------------------------------------------
+// Sharing — invites (org users) & public links
+// ---------------------------------------------------------------------------
+
+/// Invite an org user to a specific folder.
+model FolderInvite {
+  id            Int      @id @default(autoincrement())
+  folderId      Int
+  invitedUserId Int
+  invitedById   Int
+  permission    String   @db.VarChar(20) // "view" | "edit"
+  createdAt     DateTime @default(now())
+
+  folder      Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  invitedUser User   @relation("InvitedToFolder", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedBy   User   @relation("SentFolderInvite", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([folderId, invitedUserId])
+  @@map("folder_invites")
+}
+
+/// Invite an org user to a specific document.
+model DocumentInvite {
+  id            Int      @id @default(autoincrement())
+  documentId    Int
+  invitedUserId Int
+  invitedById   Int
+  permission    String   @db.VarChar(20) // "view" | "edit"
+  createdAt     DateTime @default(now())
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  invitedUser User     @relation("InvitedToDocument", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedBy   User     @relation("SentDocumentInvite", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, invitedUserId])
+  @@map("document_invites")
+}
+
+/// Public share link — can point to a document OR a folder.
+model ShareLink {
+  id          Int       @id @default(autoincrement())
+  token       String    @unique @db.VarChar(255)
+  documentId  Int?
+  folderId    Int?
+  createdById Int
+  password    String?   @db.VarChar(255) // optional password protection
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  document  Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("share_links")
 }
