@@ -85,10 +85,10 @@ export default function TrashPage() {
         )}
 
         <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(value) => {
-            if (value) setViewMode(value as "grid" | "list");
+          value={[viewMode]}
+          onValueChange={(value: string[]) => {
+            const next = value.find((v) => v !== viewMode);
+            if (next) setViewMode(next as "grid" | "list");
           }}
           variant="outline"
           spacing={0}

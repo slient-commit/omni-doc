@@ -2,23 +2,18 @@
 
 const prisma = require('../lib/prisma');
 
+// ponytail: one DB query per permission check, add req-level cache if profiler says so
 function checkPermission(action, subject) {
   return async (req, res, next) => {
     try {
-      // Cache permissions on the request to avoid repeated DB hits
-      if (!req.user._permissions) {
-        const rolePerms = await prisma.rolePermission.findMany({
-          where: { roleId: req.user.roleId },
-          include: { permission: true },
-        });
-        req.user._permissions = rolePerms.map((rp) => rp.permission);
-      }
+      const count = await prisma.rolePermission.count({
+        where: {
+          roleId: req.user.roleId,
+          permission: { action, subject },
+        },
+      });
 
-      const has = req.user._permissions.some(
-        (p) => p.action === action && p.subject === subject,
-      );
-
-      if (!has) {
+      if (count === 0) {
         return res.status(403).json({ error: { message: 'Insufficient permissions' } });
       }
 

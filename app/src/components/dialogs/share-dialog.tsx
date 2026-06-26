@@ -155,7 +155,7 @@ export function ShareDialog({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1"
             />
-            <Select value={permission} onValueChange={setPermission}>
+            <Select value={permission} onValueChange={(v) => { if (v) setPermission(v); }}>
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>

@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import type { Document, Folder } from "@/types/documents";
+import { getDocumentIcon, formatFileSize, formatDate } from "@/lib/formatters";
 import {
   Loader2,
   Lock,
   Download,
-  FileText,
   FileImage,
+  FileText,
   File,
   Folder as FolderIcon,
 } from "lucide-react";
@@ -21,34 +22,6 @@ interface SharedContent {
   document?: Document;
   folder?: Folder & { documents?: Document[]; children?: Folder[] };
   passwordRequired?: boolean;
-}
-
-function getDocumentIcon(mimeType: string | null) {
-  if (!mimeType)
-    return <File className="size-12 stroke-1 text-muted-foreground" />;
-  if (mimeType.startsWith("image/"))
-    return <FileImage className="size-12 stroke-1 text-blue-500" />;
-  return <FileText className="size-12 stroke-1 text-orange-500" />;
-}
-
-function formatFileSize(bytes: number | null): string {
-  if (bytes === null || bytes === 0) return "--";
-  const units = ["B", "KB", "MB", "GB"];
-  let unitIndex = 0;
-  let size = bytes;
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex++;
-  }
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export default function SharedLinkPage() {
@@ -180,7 +153,7 @@ export default function SharedLinkPage() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6 rounded-lg border p-6">
           <div className="flex flex-col items-center gap-4 text-center">
-            {getDocumentIcon(doc.mimeType)}
+            {getDocumentIcon(doc.mimeType, 'size-12 stroke-1')}
             <div>
               <h1 className="text-lg font-semibold">{doc.originalName}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
