@@ -6,7 +6,6 @@ CREATE TABLE `organizations` (
     `storagePath` VARCHAR(500) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-
     UNIQUE INDEX `organizations_slug_key`(`slug`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -16,7 +15,6 @@ CREATE TABLE `permissions` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `action` VARCHAR(50) NOT NULL,
     `subject` VARCHAR(50) NOT NULL,
-
     UNIQUE INDEX `permissions_action_subject_key`(`action`, `subject`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -29,7 +27,6 @@ CREATE TABLE `roles` (
     `organizationId` INTEGER NOT NULL,
     `isSystem` BOOLEAN NOT NULL DEFAULT false,
     `isDefault` BOOLEAN NOT NULL DEFAULT false,
-
     UNIQUE INDEX `roles_organizationId_name_key`(`organizationId`, `name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -38,7 +35,6 @@ CREATE TABLE `roles` (
 CREATE TABLE `role_permissions` (
     `roleId` INTEGER NOT NULL,
     `permissionId` INTEGER NOT NULL,
-
     PRIMARY KEY (`roleId`, `permissionId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -55,7 +51,6 @@ CREATE TABLE `users` (
     `emailVerifiedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-
     UNIQUE INDEX `users_email_organizationId_key`(`email`, `organizationId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -68,7 +63,6 @@ CREATE TABLE `password_reset_tokens` (
     `expiresAt` DATETIME(3) NOT NULL,
     `usedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
     UNIQUE INDEX `password_reset_tokens_token_key`(`token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -81,7 +75,6 @@ CREATE TABLE `email_verification_tokens` (
     `expiresAt` DATETIME(3) NOT NULL,
     `usedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
     UNIQUE INDEX `email_verification_tokens_token_key`(`token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -94,13 +87,13 @@ CREATE TABLE `categories` (
     `color` VARCHAR(20) NULL,
     `parentId` INTEGER NULL,
     `organizationId` INTEGER NOT NULL,
-
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable: documents
 CREATE TABLE `documents` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `uuid` VARCHAR(36) NOT NULL,
     `originalName` VARCHAR(255) NOT NULL,
     `storedFilename` VARCHAR(255) NOT NULL,
     `filePath` VARCHAR(500) NOT NULL,
@@ -112,23 +105,26 @@ CREATE TABLE `documents` (
     `createdById` INTEGER NOT NULL,
     `isPrivate` BOOLEAN NOT NULL DEFAULT false,
     `metadata` JSON NULL,
+    `deletedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-
+    UNIQUE INDEX `documents_uuid_key`(`uuid`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable: folders
 CREATE TABLE `folders` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `uuid` VARCHAR(36) NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `parentId` INTEGER NULL,
     `organizationId` INTEGER NOT NULL,
     `createdById` INTEGER NOT NULL,
     `isPrivate` BOOLEAN NOT NULL DEFAULT false,
+    `deletedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
-
+    UNIQUE INDEX `folders_uuid_key`(`uuid`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -136,7 +132,6 @@ CREATE TABLE `folders` (
 CREATE TABLE `document_folders` (
     `documentId` INTEGER NOT NULL,
     `folderId` INTEGER NOT NULL,
-
     PRIMARY KEY (`documentId`, `folderId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -148,7 +143,6 @@ CREATE TABLE `folder_invites` (
     `invitedById` INTEGER NOT NULL,
     `permission` VARCHAR(20) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
     UNIQUE INDEX `folder_invites_folderId_invitedUserId_key`(`folderId`, `invitedUserId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -161,7 +155,6 @@ CREATE TABLE `document_invites` (
     `invitedById` INTEGER NOT NULL,
     `permission` VARCHAR(20) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
     UNIQUE INDEX `document_invites_documentId_invitedUserId_key`(`documentId`, `invitedUserId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -176,12 +169,11 @@ CREATE TABLE `share_links` (
     `password` VARCHAR(255) NULL,
     `expiresAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-
     UNIQUE INDEX `share_links_token_key`(`token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- AddForeignKey
+-- AddForeignKeys
 ALTER TABLE `roles` ADD CONSTRAINT `roles_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organizations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
