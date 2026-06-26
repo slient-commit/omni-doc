@@ -7,7 +7,8 @@
       "Bash(npx vite:*)",
       "Read(//c/Users/Kamal/.claude/plugins/marketplaces/ui-ux-pro-max-skill/.claude/skills/ui-ux-pro-max/**)",
       "Bash(python scripts/search.py \"document management file explorer SaaS productivity tool\" --design-system -p \"omni-doc\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx shadcn@latest add dialog tabs checkbox select context-menu breadcrumb table badge toggle-group command popover progress -y)"
     ]
   }
 }

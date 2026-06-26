@@ -170,10 +170,11 @@ model Document {
   categoryId     Int?
   organizationId Int
   createdById    Int
-  isPrivate      Boolean  @default(false)  // only owner can see/edit
-  metadata       Json?                     // flexible key-value data
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isPrivate      Boolean   @default(false)  // only owner can see/edit
+  metadata       Json?                      // flexible key-value data
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   category     Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -196,9 +197,10 @@ model Folder {
   parentId       Int?
   organizationId Int
   createdById    Int
-  isPrivate      Boolean  @default(false) // only owner can see/edit
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isPrivate      Boolean   @default(false) // only owner can see/edit
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   parent       Folder?      @relation("FolderTree", fields: [parentId], references: [id])
   children     Folder[]     @relation("FolderTree")

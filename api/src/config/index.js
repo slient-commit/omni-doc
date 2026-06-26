@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 require('dotenv').config();
 
 const config = {
@@ -12,6 +13,7 @@ const config = {
   resendApiKey: process.env.RESEND_API_KEY,
   emailFrom: process.env.EMAIL_FROM || 'onboarding@resend.dev',
   appUrl: process.env.APP_URL || 'http://localhost:5173',
+  storagePath: process.env.STORAGE_PATH || path.join(__dirname, '../../uploads'),
 };
 
 module.exports = config;

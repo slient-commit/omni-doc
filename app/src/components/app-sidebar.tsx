@@ -1,5 +1,5 @@
-import { Files, FolderOpen, Share2, Trash2, LogOut, Settings } from 'lucide-react';
-import { Link, useLocation } from 'react-router';
+import { Files, FolderOpen, Share2, Trash2, LogOut, Cog } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -32,6 +32,7 @@ const NAV_ITEMS = [
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '?';
 
@@ -87,8 +88,8 @@ export function AppSidebar() {
             </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-48">
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <Cog className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />

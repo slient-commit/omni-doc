@@ -1,15 +1,15 @@
 import { useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router";
-import { FileExplorerToolbar } from "@/components/file-explorer/file-explorer-toolbar";
-import { FileExplorerBreadcrumb } from "@/components/file-explorer/file-explorer-breadcrumb";
+import { useDocuments } from "@/hooks/use-document-queries";
+import { useFolders } from "@/hooks/use-folder-queries";
 import { FileExplorerGrid } from "@/components/file-explorer/file-explorer-grid";
 import { FileExplorerList } from "@/components/file-explorer/file-explorer-list";
 import { FileExplorerEmpty } from "@/components/file-explorer/file-explorer-empty";
-import { useFolders } from "@/hooks/use-folder-queries";
-import { useDocuments } from "@/hooks/use-document-queries";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Search, LayoutGrid, List, Loader2, Users } from "lucide-react";
 
-export default function DashboardPage() {
+export default function SharedPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const folderId = searchParams.get("folderId")
@@ -55,17 +55,43 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <FileExplorerToolbar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        folderId={folderId}
-        onSearch={setSearch}
-      />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search shared items..."
+            className="pl-8"
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-      <FileExplorerBreadcrumb
-        folderId={folderId}
-        onNavigate={handleNavigateFolder}
-      />
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(value) => {
+            if (value) setViewMode(value as "grid" | "list");
+          }}
+          variant="outline"
+          spacing={0}
+        >
+          <ToggleGroupItem value="grid" aria-label="Grid view">
+            <LayoutGrid className="size-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="List view">
+            <List className="size-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Users className="size-5 text-muted-foreground" />
+        <div>
+          <h1 className="text-lg font-semibold">Shared with me</h1>
+          <p className="text-sm text-muted-foreground">
+            Documents and folders others have shared with you.
+          </p>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
@@ -75,8 +101,8 @@ export default function DashboardPage() {
         <FileExplorerEmpty
           message={
             search
-              ? "No items match your search."
-              : "This folder is empty. Create a folder or upload a document to get started."
+              ? "No shared items match your search."
+              : "Nothing shared with you yet."
           }
         />
       ) : viewMode === "grid" ? (
