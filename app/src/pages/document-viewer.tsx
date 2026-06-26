@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
 import { useDocument } from '@/hooks/use-document-queries';
-import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,6 @@ function isPreviewable(mimeType: string | null): boolean {
 export default function DocumentViewerPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: doc, isLoading, isError } = useDocument(Number(id));
 
   if (isLoading) {
