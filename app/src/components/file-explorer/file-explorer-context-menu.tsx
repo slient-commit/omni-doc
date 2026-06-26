@@ -1,8 +1,4 @@
-import { type ReactNode, useState } from 'react';
-import {
-  ContextMenu, ContextMenuTrigger, ContextMenuContent,
-  ContextMenuItem, ContextMenuSeparator,
-} from '@/components/ui/context-menu';
+import { type ReactNode, useState, useCallback, useRef, useEffect } from 'react';
 import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore, Settings2 } from 'lucide-react';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
 import { useDeleteDocument, useRestoreDocument } from '@/hooks/use-document-queries';
@@ -21,13 +17,17 @@ interface FileExplorerContextMenuProps {
   onOpen?: () => void;
 }
 
+// ponytail: native onContextMenu + absolute-positioned menu div
+// avoids base-ui ContextMenu component which breaks in various layouts
 export function FileExplorerContextMenu({
   children, item, type, isTrash = false, onOpen,
 }: FileExplorerContextMenuProps) {
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [propsOpen, setPropsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { token } = useAuth();
 
   const deleteFolder = useDeleteFolder();
@@ -36,62 +36,88 @@ export function FileExplorerContextMenu({
   const restoreDocument = useRestoreDocument();
 
   const itemName = type === 'folder' ? (item as Folder).name : (item as Document).originalName;
-
   const uuid = item.uuid;
 
-  function handleSoftDelete() {
-    if (type === 'folder') deleteFolder.mutate(uuid);
-    else deleteDocument.mutate(uuid);
-  }
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+  }, []);
 
-  function handleRestore() {
-    if (type === 'folder') restoreFolder.mutate(uuid);
-    else restoreDocument.mutate(uuid);
+  const closeMenu = useCallback(() => setMenuPos(null), []);
+
+  // Close on outside click or escape
+  useEffect(() => {
+    if (!menuPos) return;
+    const handleClick = () => closeMenu();
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
+    document.addEventListener('click', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [menuPos, closeMenu]);
+
+  function menuItem(icon: ReactNode, label: string, onClick: () => void, destructive = false) {
+    return (
+      <button
+        type="button"
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${destructive ? 'text-destructive hover:text-destructive' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          closeMenu();
+          onClick();
+        }}
+      >
+        {icon}
+        {label}
+      </button>
+    );
   }
 
   return (
     <>
-      <ContextMenu>
-        <ContextMenuTrigger>{children}</ContextMenuTrigger>
-        <ContextMenuContent>
+      <div onContextMenu={handleContextMenu}>
+        {children}
+      </div>
+
+      {menuPos && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 min-w-[160px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+          style={{ left: menuPos.x, top: menuPos.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {isTrash ? (
             <>
-              <ContextMenuItem onSelect={handleRestore}>
-                <ArchiveRestore className="size-4" /> Restore
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
-                <Trash2 className="size-4" /> Delete Permanently
-              </ContextMenuItem>
+              {menuItem(<ArchiveRestore className="size-4" />, 'Restore', () => {
+                if (type === 'folder') restoreFolder.mutate(uuid);
+                else restoreDocument.mutate(uuid);
+              })}
+              <div className="my-1 h-px bg-border" />
+              {menuItem(<Trash2 className="size-4" />, 'Delete Permanently', () => setDeleteOpen(true), true)}
             </>
           ) : (
             <>
-              <ContextMenuItem onSelect={onOpen}>
-                <FolderOpen className="size-4" /> Open
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onSelect={() => setRenameOpen(true)}>
-                <Pencil className="size-4" /> Rename
-              </ContextMenuItem>
-              {type === 'document' && (
-                <ContextMenuItem onSelect={() => window.open(`/api/documents/${(item as Document).uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank')}>
-                  <Download className="size-4" /> Download
-                </ContextMenuItem>
+              {menuItem(<FolderOpen className="size-4" />, 'Open', () => onOpen?.())}
+              <div className="my-1 h-px bg-border" />
+              {menuItem(<Pencil className="size-4" />, 'Rename', () => setRenameOpen(true))}
+              {type === 'document' && menuItem(
+                <Download className="size-4" />, 'Download',
+                () => window.open(`/api/documents/${uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank'),
               )}
-              <ContextMenuItem onSelect={() => setShareOpen(true)}>
-                <Share2 className="size-4" /> Share
-              </ContextMenuItem>
-              <ContextMenuItem onSelect={() => setPropsOpen(true)}>
-                <Settings2 className="size-4" /> Properties
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem variant="destructive" onSelect={handleSoftDelete}>
-                <Trash2 className="size-4" /> Delete
-              </ContextMenuItem>
+              {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
+              {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true))}
+              <div className="my-1 h-px bg-border" />
+              {menuItem(<Trash2 className="size-4" />, 'Delete', () => {
+                if (type === 'folder') deleteFolder.mutate(uuid);
+                else deleteDocument.mutate(uuid);
+              }, true)}
             </>
           )}
-        </ContextMenuContent>
-      </ContextMenu>
+        </div>
+      )}
 
       <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={type} id={uuid} currentName={itemName} />
       <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={uuid} name={itemName} permanent />
