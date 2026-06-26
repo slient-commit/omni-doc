@@ -7,7 +7,7 @@ interface FileExplorerGridProps {
   folders: Folder[];
   documents: Document[];
   onFolderClick: (id: number) => void;
-  onDocumentClick: (id: number) => void;
+  onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
 }
 
@@ -54,12 +54,12 @@ export function FileExplorerGrid({
           item={doc}
           type="document"
           isTrash={isTrash}
-          onOpen={() => onDocumentClick(doc.id)}
+          onOpen={() => onDocumentClick(doc.uuid)}
         >
           <button
             type="button"
             className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card p-4 text-card-foreground transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => onDocumentClick(doc.id)}
+            onClick={() => onDocumentClick(doc.uuid)}
           >
             {getDocumentIcon(doc.mimeType)}
             <div className="w-full text-center">

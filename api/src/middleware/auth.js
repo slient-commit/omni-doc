@@ -6,12 +6,16 @@ const prisma = require('../lib/prisma');
 
 async function authenticate(req, res, next) {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  // ponytail: also accept ?token= for iframe/img loads that can't send headers
+  const queryToken = req.query.token;
+  const bearerToken = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = bearerToken || queryToken;
+
+  if (!token) {
     return res.status(401).json({ error: { message: 'Authentication required' } });
   }
 
   try {
-    const token = header.slice(7);
     const decoded = jwt.verify(token, config.jwtSecret);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },

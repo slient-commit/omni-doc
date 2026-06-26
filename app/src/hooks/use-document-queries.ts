@@ -16,7 +16,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
   });
 }
 
-export function useDocument(id: number) {
+export function useDocument(id: number | string) {
   return useQuery({
     queryKey: ['documents', id],
     queryFn: () => api.get<Document>(`/documents/${id}`).then((r) => r.data),

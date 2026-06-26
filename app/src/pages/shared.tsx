@@ -49,8 +49,8 @@ export default function SharedPage() {
     }
   }
 
-  function handleDocumentClick(id: number) {
-    navigate(`/documents/${id}`);
+  function handleDocumentClick(uuid: string) {
+    navigate(`/documents/${uuid}`);
   }
 
   return (

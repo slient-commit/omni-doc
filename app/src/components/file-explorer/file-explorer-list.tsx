@@ -15,6 +15,7 @@ import { ShareDialog } from '@/components/dialogs/share-dialog';
 import { EditPropertiesDialog } from '@/components/dialogs/edit-properties-dialog';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
 import { useDeleteDocument, useRestoreDocument } from '@/hooks/use-document-queries';
+import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate, getOwnerName } from '@/lib/formatters';
 import type { Folder, Document } from '@/types/documents';
 
@@ -22,7 +23,7 @@ interface FileExplorerListProps {
   folders: Folder[];
   documents: Document[];
   onFolderClick: (id: number) => void;
-  onDocumentClick: (id: number) => void;
+  onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
 }
 
@@ -40,6 +41,7 @@ export function FileExplorerList({
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const { token } = useAuth();
   const deleteFolder = useDeleteFolder();
   const deleteDocument = useDeleteDocument();
   const restoreFolder = useRestoreFolder();
@@ -96,8 +98,8 @@ export function FileExplorerList({
             <TableRow
               key={`d-${doc.id}`}
               className="cursor-pointer"
-              onClick={() => onDocumentClick(doc.id)}
-              onContextMenu={(e) => handleContextMenu(e, doc, 'document', () => onDocumentClick(doc.id))}
+              onClick={() => onDocumentClick(doc.uuid)}
+              onContextMenu={(e) => handleContextMenu(e, doc, 'document', () => onDocumentClick(doc.uuid))}
             >
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -139,7 +141,7 @@ export function FileExplorerList({
                     <Pencil className="size-4" /> Rename
                   </ContextMenuItem>
                   {target.type === 'document' && (
-                    <ContextMenuItem onSelect={() => window.open(`/api/documents/${target.item.id}/download`, '_blank')}>
+                    <ContextMenuItem onSelect={() => window.open(`/api/documents/${(target.item as Document).uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank')}>
                       <Download className="size-4" /> Download
                     </ContextMenuItem>
                   )}

@@ -1,14 +1,10 @@
 import { useParams, useNavigate } from 'react-router';
 import { useDocument } from '@/hooks/use-document-queries';
+import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
-
-// ponytail: iframe-based viewer for known types, download fallback for the rest
-function getViewerUrl(id: number) {
-  return `/api/documents/${id}/download`;
-}
 
 function isPreviewable(mimeType: string | null): boolean {
   if (!mimeType) return false;
@@ -24,7 +20,11 @@ function isPreviewable(mimeType: string | null): boolean {
 export default function DocumentViewerPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: doc, isLoading, isError } = useDocument(Number(id));
+  const { token } = useAuth();
+  const { data: doc, isLoading, isError } = useDocument(id!);
+
+  // ponytail: append JWT as query param for iframe/img loads that can't send headers
+  const downloadUrl = `/api/documents/${id}/download?token=${encodeURIComponent(token ?? '')}`;
 
   if (isLoading) {
     return (
@@ -49,7 +49,6 @@ export default function DocumentViewerPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="size-4" />
@@ -63,29 +62,20 @@ export default function DocumentViewerPage() {
           <span className="text-sm text-muted-foreground">
             {formatFileSize(doc.fileSize)} &middot; {formatDate(doc.documentDate)}
           </span>
-          <Button onClick={() => window.open(getViewerUrl(Number(id)), '_blank')}>
+          <Button onClick={() => window.open(downloadUrl, '_blank')}>
             <Download className="size-4" /> Download
           </Button>
         </div>
       </div>
 
-      {/* Preview */}
       {canPreview ? (
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30">
           {doc.mimeType?.startsWith('image/') ? (
             <div className="flex h-full items-center justify-center p-4">
-              <img
-                src={getViewerUrl(Number(id))}
-                alt={doc.originalName}
-                className="max-h-full max-w-full object-contain"
-              />
+              <img src={downloadUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
             </div>
           ) : (
-            <iframe
-              src={getViewerUrl(Number(id))}
-              title={doc.originalName}
-              className="h-full w-full min-h-[600px]"
-            />
+            <iframe src={downloadUrl} title={doc.originalName} className="h-full w-full min-h-[600px]" />
           )}
         </div>
       ) : (
@@ -97,7 +87,7 @@ export default function DocumentViewerPage() {
               Preview not available for this file type. Download to view.
             </p>
           </div>
-          <Button onClick={() => window.open(getViewerUrl(Number(id)), '_blank')}>
+          <Button onClick={() => window.open(downloadUrl, '_blank')}>
             <Download className="size-4" /> Download
           </Button>
         </div>

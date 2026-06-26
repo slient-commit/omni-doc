@@ -14,6 +14,7 @@ export interface Folder {
 
 export interface Document {
   id: number;
+  uuid: string;
   originalName: string;
   storedFilename: string;
   filePath: string;

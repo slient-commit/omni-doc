@@ -60,10 +60,16 @@ async function list({ organizationId, userId, folderId, categoryId, search, crea
   });
 }
 
+// ponytail: accepts numeric id or string uuid
+function idOrUuid(identifier) {
+  const num = Number(identifier);
+  return Number.isInteger(num) ? { id: num } : { uuid: identifier };
+}
+
 async function getById({ id, userId, organizationId }) {
   const user = { id: userId, organizationId };
   const document = await prisma.document.findFirst({
-    where: { id, ...documentVisibilityFilter(user) },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter(user) },
     include: {
       createdBy: { select: { id: true, firstName: true, lastName: true } },
       category: true,
@@ -88,7 +94,7 @@ function resolveFilePath(orgStoragePath, filePath) {
 async function getDownloadInfo({ id, userId, organizationId }) {
   const user = { id: userId, organizationId };
   const doc = await prisma.document.findFirst({
-    where: { id, ...documentVisibilityFilter(user) },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter(user) },
     include: { organization: { select: { storagePath: true } } },
   });
   if (!doc) {

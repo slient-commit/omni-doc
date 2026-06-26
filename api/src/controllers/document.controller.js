@@ -38,7 +38,7 @@ async function list(req, res, next) {
 async function getById(req, res, next) {
   try {
     const doc = await documentService.getById({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       userId: req.user.id,
       organizationId: req.user.organizationId,
     });
@@ -49,7 +49,7 @@ async function getById(req, res, next) {
 async function download(req, res, next) {
   try {
     const { absolutePath, originalName } = await documentService.getDownloadInfo({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       userId: req.user.id,
       organizationId: req.user.organizationId,
     });

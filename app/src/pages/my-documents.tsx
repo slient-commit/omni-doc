@@ -25,8 +25,8 @@ export default function MyDocumentsPage() {
     return documents.filter((d) => d.originalName.toLowerCase().includes(q));
   }, [documents, search]);
 
-  function handleDocumentClick(id: number) {
-    navigate(`/documents/${id}`);
+  function handleDocumentClick(uuid: string) {
+    navigate(`/documents/${uuid}`);
   }
 
   return (

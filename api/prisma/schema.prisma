@@ -161,6 +161,7 @@ model Category {
 
 model Document {
   id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid()) @db.VarChar(36)
   originalName   String   @db.VarChar(255)
   storedFilename String   @db.VarChar(255) // UUID-based name on disk
   filePath       String   @db.VarChar(500) // relative to org storagePath

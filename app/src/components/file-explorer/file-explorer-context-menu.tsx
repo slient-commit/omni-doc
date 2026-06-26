@@ -10,6 +10,7 @@ import { RenameDialog } from '@/components/dialogs/rename-dialog';
 import { ConfirmDeleteDialog } from '@/components/dialogs/confirm-delete-dialog';
 import { ShareDialog } from '@/components/dialogs/share-dialog';
 import { EditPropertiesDialog } from '@/components/dialogs/edit-properties-dialog';
+import { useAuth } from '@/contexts/auth-context';
 import type { Folder, Document } from '@/types/documents';
 
 interface FileExplorerContextMenuProps {
@@ -27,6 +28,7 @@ export function FileExplorerContextMenu({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [propsOpen, setPropsOpen] = useState(false);
+  const { token } = useAuth();
 
   const deleteFolder = useDeleteFolder();
   const deleteDocument = useDeleteDocument();
@@ -70,7 +72,7 @@ export function FileExplorerContextMenu({
                 <Pencil className="size-4" /> Rename
               </ContextMenuItem>
               {type === 'document' && (
-                <ContextMenuItem onSelect={() => window.open(`/api/documents/${item.id}/download`, '_blank')}>
+                <ContextMenuItem onSelect={() => window.open(`/api/documents/${(item as Document).uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank')}>
                   <Download className="size-4" /> Download
                 </ContextMenuItem>
               )}
