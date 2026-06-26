@@ -51,11 +51,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {NAV_ITEMS.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.href}>
-                    <Link to={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    isActive={location.pathname === item.href}
+                    render={<Link to={item.href} />}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -73,15 +74,17 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">
-                {user?.firstName} {user?.lastName}
-              </span>
-            </button>
+          <DropdownMenuTrigger
+            render={
+              <button className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent" />
+            }
+          >
+            <Avatar className="h-7 w-7">
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="truncate">
+              {user?.firstName} {user?.lastName}
+            </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-48">
             <DropdownMenuItem>
