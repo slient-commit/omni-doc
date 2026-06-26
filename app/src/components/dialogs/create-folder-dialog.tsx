@@ -16,7 +16,7 @@ import { FolderPlusIcon, Loader2Icon } from "lucide-react";
 interface CreateFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  parentId?: number | null;
+  parentId?: string | number | null;
 }
 
 export function CreateFolderDialog({

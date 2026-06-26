@@ -29,7 +29,7 @@ export function useFolderAncestors(id: string | number | null) {
 export function useCreateFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; parentId?: number | null }) =>
+    mutationFn: (data: { name: string; parentId?: string | number | null }) =>
       api.post<Folder>('/folders', data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });

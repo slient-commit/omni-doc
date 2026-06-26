@@ -13,7 +13,7 @@ import { Loader2Icon, UploadIcon } from "lucide-react";
 interface UploadDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  folderId?: number | null;
+  folderId?: string | number | null;
 }
 
 function todayISO() {
