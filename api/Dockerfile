@@ -35,6 +35,7 @@ RUN apt-get update \
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV TZ=UTC
 
 COPY --from=build /app/node_modules ./node_modules
 COPY . .

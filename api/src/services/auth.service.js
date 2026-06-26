@@ -155,8 +155,14 @@ async function verifyEmail({ token }) {
     where: { token },
   });
 
-  if (!record || record.usedAt || record.expiresAt < new Date()) {
+  if (!record || record.usedAt) {
     const err = new Error('Invalid or expired verification token');
+    err.status = 400;
+    throw err;
+  }
+
+  if (new Date(record.expiresAt).getTime() < Date.now()) {
+    const err = new Error('Verification token has expired');
     err.status = 400;
     throw err;
   }
@@ -199,8 +205,14 @@ async function resetPassword({ token, newPassword }) {
     where: { token },
   });
 
-  if (!record || record.usedAt || record.expiresAt < new Date()) {
+  if (!record || record.usedAt) {
     const err = new Error('Invalid or expired reset token');
+    err.status = 400;
+    throw err;
+  }
+
+  if (new Date(record.expiresAt).getTime() < Date.now()) {
+    const err = new Error('Reset token has expired');
     err.status = 400;
     throw err;
   }
