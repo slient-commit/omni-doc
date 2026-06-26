@@ -1,0 +1,28 @@
+services:
+  omni-doc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omni-doc
+    container_name: omni-doc
+    restart: unless-stopped
+    ports:
+      # host:container — nginx (and the proxied API) is served on container :80
+      - "8080:80"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # External MySQL connection string (required). From your host, a local
+      # MySQL is reachable at host.docker.internal:
+      #   mysql://user:pass@host.docker.internal:3306/omni_doc
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    env_file:
+      - .env
+    networks:
+      - dokploy-network
+
+networks:
+  # Created by Dokploy on the host; its Traefik proxy routes to containers on it.
+  dokploy-network:
+    external: true
