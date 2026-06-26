@@ -1,24 +1,36 @@
 services:
-  omni-doc:
+  omni-doc-api:
     build:
-      context: .
+      context: ./api
       dockerfile: Dockerfile
-    image: omni-doc
-    container_name: omni-doc
+    image: omni-doc-api
+    container_name: omni-doc-api
     restart: unless-stopped
-    ports:
-      # host:container — nginx (and the proxied API) is served on container :80
-      - "8080:80"
     environment:
       NODE_ENV: production
       PORT: 3000
-      # External MySQL connection string (required). From your host, a local
-      # MySQL is reachable at host.docker.internal:
+      # External MySQL connection string (required). To reach a MySQL running
+      # on the host machine, use host.docker.internal:
       #   mysql://user:pass@host.docker.internal:3306/omni_doc
       DATABASE_URL: ${DATABASE_URL}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     env_file:
       - .env
+    networks:
+      - dokploy-network
+
+  omni-doc-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: omni-doc-app
+    container_name: omni-doc-app
+    restart: unless-stopped
+    depends_on:
+      - omni-doc-api
+    ports:
+      # host:container — nginx serves the app and proxies /api to omni-doc-api
+      - "8080:80"
     networks:
       - dokploy-network
 
