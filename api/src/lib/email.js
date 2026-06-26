@@ -3,10 +3,19 @@
 const { Resend } = require('resend');
 const config = require('../config');
 
-const resend = new Resend(config.resendApiKey);
+let resend = null;
+if (config.resendApiKey) {
+  resend = new Resend(config.resendApiKey);
+} else {
+  console.warn('[email] RESEND_API_KEY not set — emails will be logged to console only.');
+}
 
 async function sendVerificationEmail(to, token) {
   const url = `${config.appUrl}/verify-email?token=${token}`;
+  if (!resend) {
+    console.log(`[email] Verification email for ${to}: ${url}`);
+    return;
+  }
   try {
     await resend.emails.send({
       from: config.emailFrom,
@@ -26,6 +35,10 @@ async function sendVerificationEmail(to, token) {
 
 async function sendPasswordResetEmail(to, token) {
   const url = `${config.appUrl}/reset-password?token=${token}`;
+  if (!resend) {
+    console.log(`[email] Password reset email for ${to}: ${url}`);
+    return;
+  }
   try {
     await resend.emails.send({
       from: config.emailFrom,

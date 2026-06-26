@@ -6,6 +6,8 @@ services:
     image: omni-doc-api
     container_name: omni-doc-api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 3000
