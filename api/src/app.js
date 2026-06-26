@@ -10,6 +10,9 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
+// ponytail: Prisma returns BigInt for fileSize; Express JSON.stringify chokes on it
+BigInt.prototype.toJSON = function () { return Number(this); };
+
 // Core middleware
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
