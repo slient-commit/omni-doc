@@ -9,7 +9,7 @@ import { Search, FolderPlus, Upload, LayoutGrid, List } from 'lucide-react';
 interface FileExplorerToolbarProps {
   viewMode: 'grid' | 'list';
   onViewModeChange: (mode: 'grid' | 'list') => void;
-  folderId: number | null;
+  folderId: string | null;
   onSearch: (query: string) => void;
 }
 

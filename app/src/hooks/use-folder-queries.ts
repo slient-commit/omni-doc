@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Folder, BreadcrumbItem } from '@/types/documents';
 
-export function useFolders(parentId?: number | null) {
+export function useFolders(parentId?: string | number | null) {
   return useQuery({
     queryKey: ['folders', { parentId: parentId ?? null }],
     queryFn: () =>
@@ -10,7 +10,7 @@ export function useFolders(parentId?: number | null) {
   });
 }
 
-export function useFolder(id: number) {
+export function useFolder(id: number | string) {
   return useQuery({
     queryKey: ['folders', id],
     queryFn: () => api.get<Folder>(`/folders/${id}`).then((r) => r.data),
@@ -18,7 +18,7 @@ export function useFolder(id: number) {
   });
 }
 
-export function useFolderAncestors(id: number | null) {
+export function useFolderAncestors(id: string | number | null) {
   return useQuery({
     queryKey: ['folders', id, 'ancestors'],
     queryFn: () => api.get<BreadcrumbItem[]>(`/folders/${id}/ancestors`).then((r) => r.data),

@@ -9,8 +9,8 @@ import {
 import { useFolderAncestors } from "@/hooks/use-folder-queries";
 
 interface FileExplorerBreadcrumbProps {
-  folderId: number | null;
-  onNavigate: (folderId: number | null) => void;
+  folderId: string | null;
+  onNavigate: (folderId: string | null) => void;
 }
 
 export function FileExplorerBreadcrumb({
@@ -40,7 +40,7 @@ export function FileExplorerBreadcrumb({
         </BreadcrumbItem>
 
         {ancestors.map((ancestor, index) => {
-          const isLast = index === ancestors.length - 1 && folderId === ancestor.id;
+          const isLast = index === ancestors.length - 1;
 
           return (
             <BreadcrumbItem key={ancestor.id}>
@@ -52,7 +52,7 @@ export function FileExplorerBreadcrumb({
                   render={
                     <button
                       type="button"
-                      onClick={() => onNavigate(ancestor.id)}
+                      onClick={() => onNavigate(ancestor.uuid)}
                     />
                   }
                 >

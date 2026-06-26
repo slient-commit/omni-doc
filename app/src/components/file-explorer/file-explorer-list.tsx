@@ -22,7 +22,7 @@ import type { Folder, Document } from '@/types/documents';
 interface FileExplorerListProps {
   folders: Folder[];
   documents: Document[];
-  onFolderClick: (id: number) => void;
+  onFolderClick: (uuid: string) => void;
   onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
 }
@@ -76,8 +76,8 @@ export function FileExplorerList({
               <TableRow
                 key={`f-${folder.id}`}
                 className="cursor-pointer"
-                onClick={() => onFolderClick(folder.id)}
-                onContextMenu={(e) => handleContextMenu(e, folder, 'folder', () => onFolderClick(folder.id))}
+                onClick={() => onFolderClick(folder.uuid)}
+                onContextMenu={(e) => handleContextMenu(e, folder, 'folder', () => onFolderClick(folder.uuid))}
               >
                 <TableCell>
                   <div className="flex items-center gap-2">

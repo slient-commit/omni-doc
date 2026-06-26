@@ -194,6 +194,7 @@ model Document {
 
 model Folder {
   id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid()) @db.VarChar(36)
   name           String   @db.VarChar(100)
   parentId       Int?
   organizationId Int

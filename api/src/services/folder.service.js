@@ -3,27 +3,39 @@
 const prisma = require('../lib/prisma');
 const { folderVisibilityFilter } = require('../lib/visibility');
 
+// ponytail: accepts numeric id or string uuid
+function idOrUuid(identifier) {
+  const num = Number(identifier);
+  return Number.isInteger(num) ? { id: num } : { uuid: identifier };
+}
+
 async function create({ name, parentId, organizationId, createdById }) {
-  if (parentId) {
-    const parent = await prisma.folder.findFirst({
-      where: { id: parentId, organizationId, deletedAt: null },
-    });
-    if (!parent) {
-      const err = new Error('Parent folder not found');
-      err.status = 404;
-      throw err;
-    }
+  const resolvedParentId = await resolveId(parentId);
+  if (parentId && !resolvedParentId) {
+    const err = new Error('Parent folder not found');
+    err.status = 404;
+    throw err;
   }
   return prisma.folder.create({
-    data: { name, parentId: parentId || null, organizationId, createdById },
+    data: { name, parentId: resolvedParentId, organizationId, createdById },
   });
+}
+
+// ponytail: resolve uuid to numeric id for FK lookups
+async function resolveId(identifier) {
+  if (!identifier) return null;
+  const num = Number(identifier);
+  if (Number.isInteger(num)) return num;
+  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
+  return folder?.id ?? null;
 }
 
 async function list({ organizationId, parentId, userId }) {
   const user = { id: userId, organizationId };
+  const resolvedParentId = await resolveId(parentId);
   const where = {
     ...folderVisibilityFilter(user),
-    parentId: parentId || null,
+    parentId: resolvedParentId,
   };
   return prisma.folder.findMany({
     where,
@@ -38,7 +50,7 @@ async function list({ organizationId, parentId, userId }) {
 async function getById({ id, userId, organizationId }) {
   const user = { id: userId, organizationId };
   const folder = await prisma.folder.findFirst({
-    where: { id, ...folderVisibilityFilter(user) },
+    where: { ...idOrUuid(id), ...folderVisibilityFilter(user) },
     include: {
       children: {
         where: { deletedAt: null },
@@ -71,11 +83,11 @@ async function getById({ id, userId, organizationId }) {
 
 async function getAncestors(id) {
   const ancestors = [];
-  let currentId = id;
+  let currentId = await resolveId(id);
   while (currentId) {
     const folder = await prisma.folder.findUnique({
       where: { id: currentId },
-      select: { id: true, name: true, parentId: true },
+      select: { id: true, uuid: true, name: true, parentId: true },
     });
     if (!folder) break;
     ancestors.unshift(folder);
@@ -86,14 +98,14 @@ async function getAncestors(id) {
 
 async function rename({ id, name, organizationId }) {
   const folder = await prisma.folder.findFirst({
-    where: { id, organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
   if (!folder) {
     const err = new Error('Folder not found');
     err.status = 404;
     throw err;
   }
-  return prisma.folder.update({ where: { id }, data: { name } });
+  return prisma.folder.update({ where: { id: folder.id }, data: { name } });
 }
 
 async function getDescendantFolderIds(folderId) {
@@ -112,7 +124,7 @@ async function getDescendantFolderIds(folderId) {
 
 async function softDelete({ id, organizationId }) {
   const folder = await prisma.folder.findFirst({
-    where: { id, organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -120,8 +132,8 @@ async function softDelete({ id, organizationId }) {
     throw err;
   }
 
-  const descendantIds = await getDescendantFolderIds(id);
-  const allFolderIds = [id, ...descendantIds];
+  const descendantIds = await getDescendantFolderIds(folder.id);
+  const allFolderIds = [folder.id, ...descendantIds];
   const now = new Date();
 
   await prisma.$transaction([
@@ -143,7 +155,7 @@ async function softDelete({ id, organizationId }) {
 
 async function hardDelete({ id, organizationId }) {
   const folder = await prisma.folder.findFirst({
-    where: { id, organizationId },
+    where: { ...idOrUuid(id), organizationId },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -151,8 +163,8 @@ async function hardDelete({ id, organizationId }) {
     throw err;
   }
 
-  const descendantIds = await getDescendantFolderIds(id);
-  const allFolderIds = [id, ...descendantIds];
+  const descendantIds = await getDescendantFolderIds(folder.id);
+  const allFolderIds = [folder.id, ...descendantIds];
 
   await prisma.$transaction([
     prisma.documentFolder.deleteMany({ where: { folderId: { in: allFolderIds } } }),
@@ -166,7 +178,7 @@ async function hardDelete({ id, organizationId }) {
 
 async function restore({ id, organizationId }) {
   const folder = await prisma.folder.findFirst({
-    where: { id, organizationId, deletedAt: { not: null } },
+    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null } },
   });
   if (!folder) {
     const err = new Error('Folder not found in trash');
@@ -174,8 +186,8 @@ async function restore({ id, organizationId }) {
     throw err;
   }
 
-  const descendantIds = await getDescendantFolderIds(id);
-  const allFolderIds = [id, ...descendantIds];
+  const descendantIds = await getDescendantFolderIds(folder.id);
+  const allFolderIds = [folder.id, ...descendantIds];
 
   await prisma.$transaction([
     prisma.folder.updateMany({

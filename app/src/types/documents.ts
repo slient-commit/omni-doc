@@ -1,5 +1,6 @@
 export interface Folder {
   id: number;
+  uuid: string;
   name: string;
   parentId: number | null;
   createdById: number;
@@ -71,6 +72,7 @@ export interface TrashResponse {
 
 export interface BreadcrumbItem {
   id: number;
+  uuid: string;
   name: string;
   parentId: number | null;
 }

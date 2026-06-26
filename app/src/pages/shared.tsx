@@ -12,9 +12,7 @@ import { Search, LayoutGrid, List, Loader2, Users } from "lucide-react";
 export default function SharedPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const folderId = searchParams.get("folderId")
-    ? Number(searchParams.get("folderId"))
-    : null;
+  const folderId = searchParams.get("folderId") || null;
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
@@ -41,11 +39,11 @@ export default function SharedPage() {
 
   const isEmpty = filteredFolders.length === 0 && filteredDocuments.length === 0;
 
-  function handleNavigateFolder(id: number | null) {
-    if (id === null) {
+  function handleNavigateFolder(uuid: string | null) {
+    if (uuid === null) {
       setSearchParams({});
     } else {
-      setSearchParams({ folderId: String(id) });
+      setSearchParams({ folderId: uuid });
     }
   }
 

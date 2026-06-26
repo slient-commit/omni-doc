@@ -6,7 +6,7 @@ async function create(req, res, next) {
   try {
     const folder = await folderService.create({
       name: req.body.name,
-      parentId: req.body.parentId ? parseInt(req.body.parentId, 10) : null,
+      parentId: req.body.parentId || null,
       organizationId: req.user.organizationId,
       createdById: req.user.id,
     });
@@ -16,7 +16,7 @@ async function create(req, res, next) {
 
 async function list(req, res, next) {
   try {
-    const parentId = req.query.parentId ? parseInt(req.query.parentId, 10) : null;
+    const parentId = req.query.parentId || null;
     const folders = await folderService.list({
       organizationId: req.user.organizationId,
       parentId,
@@ -29,7 +29,7 @@ async function list(req, res, next) {
 async function getById(req, res, next) {
   try {
     const folder = await folderService.getById({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       userId: req.user.id,
       organizationId: req.user.organizationId,
     });
@@ -39,7 +39,7 @@ async function getById(req, res, next) {
 
 async function getAncestors(req, res, next) {
   try {
-    const ancestors = await folderService.getAncestors(parseInt(req.params.id, 10));
+    const ancestors = await folderService.getAncestors(req.params.id);
     res.json(ancestors);
   } catch (err) { next(err); }
 }
@@ -47,7 +47,7 @@ async function getAncestors(req, res, next) {
 async function rename(req, res, next) {
   try {
     const folder = await folderService.rename({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       name: req.body.name,
       organizationId: req.user.organizationId,
     });
@@ -58,7 +58,7 @@ async function rename(req, res, next) {
 async function softDelete(req, res, next) {
   try {
     const result = await folderService.softDelete({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);
@@ -68,7 +68,7 @@ async function softDelete(req, res, next) {
 async function hardDelete(req, res, next) {
   try {
     const result = await folderService.hardDelete({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);
@@ -78,7 +78,7 @@ async function hardDelete(req, res, next) {
 async function restore(req, res, next) {
   try {
     const result = await folderService.restore({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);

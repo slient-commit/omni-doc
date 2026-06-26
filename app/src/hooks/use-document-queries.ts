@@ -3,7 +3,7 @@ import api from '@/lib/api';
 import type { Document } from '@/types/documents';
 
 interface DocumentFilters {
-  folderId?: number | null;
+  folderId?: string | number | null;
   categoryId?: number;
   search?: string;
   createdById?: number;

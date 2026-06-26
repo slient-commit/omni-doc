@@ -6,7 +6,7 @@ import type { Folder, Document } from '@/types/documents';
 interface FileExplorerGridProps {
   folders: Folder[];
   documents: Document[];
-  onFolderClick: (id: number) => void;
+  onFolderClick: (uuid: string) => void;
   onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
 }
@@ -29,12 +29,12 @@ export function FileExplorerGrid({
             item={folder}
             type="folder"
             isTrash={isTrash}
-            onOpen={() => onFolderClick(folder.id)}
+            onOpen={() => onFolderClick(folder.uuid)}
           >
             <button
               type="button"
               className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card p-4 text-card-foreground transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => onFolderClick(folder.id)}
+              onClick={() => onFolderClick(folder.uuid)}
             >
               <FolderIcon className="size-10 stroke-1 text-yellow-500" />
               <div className="w-full text-center">

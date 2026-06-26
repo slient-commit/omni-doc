@@ -6,6 +6,15 @@ const prisma = require('../lib/prisma');
 const config = require('../config');
 const { documentVisibilityFilter } = require('../lib/visibility');
 
+// ponytail: resolve folder uuid to numeric id for FK
+async function resolveFolderId(identifier) {
+  if (!identifier) return null;
+  const num = Number(identifier);
+  if (Number.isInteger(num)) return num;
+  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
+  return folder?.id ?? null;
+}
+
 async function upload({ file, documentDate, categoryId, folderId, organizationId, createdById, isPrivate, metadata }) {
   const data = {
     originalName: file.originalname,
@@ -23,9 +32,10 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
 
   const document = await prisma.document.create({ data });
 
-  if (folderId) {
+  const resolvedFolderId = await resolveFolderId(folderId);
+  if (resolvedFolderId) {
     await prisma.documentFolder.create({
-      data: { documentId: document.id, folderId: parseInt(folderId, 10) },
+      data: { documentId: document.id, folderId: resolvedFolderId },
     });
   }
 
@@ -37,7 +47,8 @@ async function list({ organizationId, userId, folderId, categoryId, search, crea
   const where = { ...documentVisibilityFilter(user) };
 
   if (folderId) {
-    where.documentFolders = { some: { folderId: parseInt(folderId, 10) } };
+    const resolvedFid = await resolveFolderId(folderId);
+    if (resolvedFid) where.documentFolders = { some: { folderId: resolvedFid } };
   }
   if (categoryId) {
     where.categoryId = parseInt(categoryId, 10);
