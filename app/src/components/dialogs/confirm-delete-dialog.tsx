@@ -21,7 +21,7 @@ interface ConfirmDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: "folder" | "document";
-  id: number;
+  id: number | string;
   name: string;
   permanent?: boolean;
 }

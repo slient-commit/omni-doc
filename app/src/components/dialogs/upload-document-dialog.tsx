@@ -43,24 +43,19 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId }: UploadDoc
     if (!files.length) return;
 
     setPending(files.length);
-    let done = 0;
 
-    files.forEach((file) => {
+    const uploads = files.map((file) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("documentDate", documentDate);
       formData.append("isPrivate", String(isPrivate));
       if (folderId != null) formData.append("folderId", String(folderId));
+      return uploadDocument.mutateAsync(formData);
+    });
 
-      uploadDocument.mutate(formData, {
-        onSettled: () => {
-          done++;
-          if (done === files.length) {
-            resetForm();
-            onOpenChange(false);
-          }
-        },
-      });
+    Promise.allSettled(uploads).then(() => {
+      resetForm();
+      onOpenChange(false);
     });
   };
 

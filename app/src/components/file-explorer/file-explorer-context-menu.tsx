@@ -37,14 +37,16 @@ export function FileExplorerContextMenu({
 
   const itemName = type === 'folder' ? (item as Folder).name : (item as Document).originalName;
 
+  const uuid = item.uuid;
+
   function handleSoftDelete() {
-    if (type === 'folder') deleteFolder.mutate(item.id);
-    else deleteDocument.mutate(item.id);
+    if (type === 'folder') deleteFolder.mutate(uuid);
+    else deleteDocument.mutate(uuid);
   }
 
   function handleRestore() {
-    if (type === 'folder') restoreFolder.mutate(item.id);
-    else restoreDocument.mutate(item.id);
+    if (type === 'folder') restoreFolder.mutate(uuid);
+    else restoreDocument.mutate(uuid);
   }
 
   return (
@@ -91,9 +93,9 @@ export function FileExplorerContextMenu({
         </ContextMenuContent>
       </ContextMenu>
 
-      <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={type} id={item.id} currentName={itemName} />
-      <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={item.id} name={itemName} permanent />
-      <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={type} id={item.id} />
+      <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={type} id={uuid} currentName={itemName} />
+      <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={uuid} name={itemName} permanent />
+      <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={type} id={uuid} />
       <EditPropertiesDialog open={propsOpen} onOpenChange={setPropsOpen} type={type} item={item} />
     </>
   );

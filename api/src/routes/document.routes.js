@@ -19,43 +19,43 @@ router.get('/', checkPermission('read', 'document'), ctrl.list);
 
 router.get('/:id',
   checkPermission('read', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.getById,
 );
 
 router.get('/:id/download',
   checkPermission('read', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.download,
 );
 
 router.patch('/:id',
   checkPermission('update', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.update,
 );
 
 router.delete('/:id',
   checkPermission('delete', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.softDelete,
 );
 
 router.delete('/:id/permanent',
   checkPermission('delete', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.hardDelete,
 );
 
 router.post('/:id/restore',
   checkPermission('update', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.restore,
 );
 
 router.post('/:id/move',
   checkPermission('update', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.move,
 );
 

@@ -35,10 +35,11 @@ export function useCreateFolder() {
   });
 }
 
+// ponytail: all mutations accept number|string — pass uuid from item.uuid
 export function useRenameFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
+    mutationFn: ({ id, name }: { id: number | string; name: string }) =>
       api.patch<Folder>(`/folders/${id}`, { name }).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
@@ -47,7 +48,7 @@ export function useRenameFolder() {
 export function useDeleteFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/folders/${id}`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.delete(`/folders/${id}`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['folders'] });
       qc.invalidateQueries({ queryKey: ['trash'] });
@@ -58,7 +59,7 @@ export function useDeleteFolder() {
 export function usePermanentDeleteFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/folders/${id}/permanent`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.delete(`/folders/${id}/permanent`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['folders'] });
       qc.invalidateQueries({ queryKey: ['trash'] });
@@ -69,7 +70,7 @@ export function usePermanentDeleteFolder() {
 export function useRestoreFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.post(`/folders/${id}/restore`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.post(`/folders/${id}/restore`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['folders'] });
       qc.invalidateQueries({ queryKey: ['trash'] });

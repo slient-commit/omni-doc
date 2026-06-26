@@ -16,7 +16,8 @@ export function useDocuments(filters: DocumentFilters = {}) {
   });
 }
 
-export function useDocument(id: number | string) {
+// ponytail: accepts uuid string for URL lookup
+export function useDocument(id: string) {
   return useQuery({
     queryKey: ['documents', id],
     queryFn: () => api.get<Document>(`/documents/${id}`).then((r) => r.data),
@@ -38,10 +39,11 @@ export function useUploadDocument() {
   });
 }
 
+// ponytail: all mutations accept number|string — pass uuid from item.uuid
 export function useUpdateDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number; originalName?: string; categoryId?: number | null; documentDate?: string; metadata?: Record<string, unknown> }) =>
+    mutationFn: ({ id, ...data }: { id: number | string; originalName?: string; categoryId?: number | null; documentDate?: string; metadata?: Record<string, unknown> }) =>
       api.patch<Document>(`/documents/${id}`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   });
@@ -50,7 +52,7 @@ export function useUpdateDocument() {
 export function useDeleteDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/documents/${id}`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.delete(`/documents/${id}`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents'] });
       qc.invalidateQueries({ queryKey: ['trash'] });
@@ -61,7 +63,7 @@ export function useDeleteDocument() {
 export function usePermanentDeleteDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/documents/${id}/permanent`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.delete(`/documents/${id}/permanent`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents'] });
       qc.invalidateQueries({ queryKey: ['trash'] });
@@ -72,7 +74,7 @@ export function usePermanentDeleteDocument() {
 export function useRestoreDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.post(`/documents/${id}/restore`).then((r) => r.data),
+    mutationFn: (id: number | string) => api.post(`/documents/${id}/restore`).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents'] });
       qc.invalidateQueries({ queryKey: ['trash'] });
@@ -83,7 +85,7 @@ export function useRestoreDocument() {
 export function useMoveDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, folderIds }: { id: number; folderIds: number[] }) =>
+    mutationFn: ({ id, folderIds }: { id: number | string; folderIds: number[] }) =>
       api.post(`/documents/${id}/move`, { folderIds }).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documents'] });

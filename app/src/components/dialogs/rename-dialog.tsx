@@ -18,7 +18,7 @@ interface RenameDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: "folder" | "document";
-  id: number;
+  id: number | string;
   currentName: string;
 }
 

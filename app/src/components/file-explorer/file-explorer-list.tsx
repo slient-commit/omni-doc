@@ -123,7 +123,7 @@ export function FileExplorerList({
             <ContextMenuContent>
               {isTrash ? (
                 <>
-                  <ContextMenuItem onSelect={() => (target.type === 'folder' ? restoreFolder : restoreDocument).mutate(target.item.id)}>
+                  <ContextMenuItem onSelect={() => (target.type === 'folder' ? restoreFolder : restoreDocument).mutate(target.item.uuid)}>
                     <ArchiveRestore className="size-4" /> Restore
                   </ContextMenuItem>
                   <ContextMenuSeparator />
@@ -152,7 +152,7 @@ export function FileExplorerList({
                     <Settings2 className="size-4" /> Properties
                   </ContextMenuItem>
                   <ContextMenuSeparator />
-                  <ContextMenuItem variant="destructive" onSelect={() => (target.type === 'folder' ? deleteFolder : deleteDocument).mutate(target.item.id)}>
+                  <ContextMenuItem variant="destructive" onSelect={() => (target.type === 'folder' ? deleteFolder : deleteDocument).mutate(target.item.uuid)}>
                     <Trash2 className="size-4" /> Delete
                   </ContextMenuItem>
                 </>
@@ -165,9 +165,9 @@ export function FileExplorerList({
       {/* Dialogs */}
       {target && (
         <>
-          <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={target.type} id={target.item.id} currentName={itemName} />
-          <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={target.type} id={target.item.id} name={itemName} permanent />
-          <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={target.type} id={target.item.id} />
+          <RenameDialog open={renameOpen} onOpenChange={setRenameOpen} type={target.type} id={target.item.uuid} currentName={itemName} />
+          <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={target.type} id={target.item.uuid} name={itemName} permanent />
+          <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={target.type} id={target.item.uuid} />
           <EditPropertiesDialog open={propsOpen} onOpenChange={setPropsOpen} type={target.type} item={target.item} />
         </>
       )}
