@@ -58,8 +58,8 @@ export function ShareDialog({
 
   const { data: users } = useUsers();
   const { data: shareLinks } = useShareLinks();
-  const { data: document } = useDocument(type === "document" ? id : 0);
-  const { data: folder } = useFolder(type === "folder" ? id : 0);
+  const { data: document } = useDocument(type === "document" ? String(id) : "");
+  const { data: folder } = useFolder(type === "folder" ? id : "");
 
   const createDocInvite = useCreateDocumentInvite();
   const deleteDocInvite = useDeleteDocumentInvite();

@@ -5,7 +5,7 @@ import type { ShareLink } from '@/types/documents';
 export function useCreateDocumentInvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ documentId, ...data }: { documentId: number; invitedUserId: number; permission: string }) =>
+    mutationFn: ({ documentId, ...data }: { documentId: number | string; invitedUserId: number; permission: string }) =>
       api.post(`/documents/${documentId}/invite`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   });
@@ -14,7 +14,7 @@ export function useCreateDocumentInvite() {
 export function useDeleteDocumentInvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ documentId, inviteId }: { documentId: number; inviteId: number }) =>
+    mutationFn: ({ documentId, inviteId }: { documentId: number | string; inviteId: number }) =>
       api.delete(`/documents/${documentId}/invite/${inviteId}`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   });
@@ -23,7 +23,7 @@ export function useDeleteDocumentInvite() {
 export function useCreateFolderInvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ folderId, ...data }: { folderId: number; invitedUserId: number; permission: string }) =>
+    mutationFn: ({ folderId, ...data }: { folderId: number | string; invitedUserId: number; permission: string }) =>
       api.post(`/folders/${folderId}/invite`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
@@ -32,7 +32,7 @@ export function useCreateFolderInvite() {
 export function useDeleteFolderInvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ folderId, inviteId }: { folderId: number; inviteId: number }) =>
+    mutationFn: ({ folderId, inviteId }: { folderId: number | string; inviteId: number }) =>
       api.delete(`/folders/${folderId}/invite/${inviteId}`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
@@ -48,7 +48,7 @@ export function useShareLinks() {
 export function useCreateShareLink() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { documentId?: number; folderId?: number; password?: string; expiresAt?: string }) =>
+    mutationFn: (data: { documentId?: number | string; folderId?: number | string; password?: string; expiresAt?: string }) =>
       api.post<ShareLink>('/share-links', data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['share-links'] }),
   });
