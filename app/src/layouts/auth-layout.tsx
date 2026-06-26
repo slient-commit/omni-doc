@@ -7,7 +7,7 @@ export function AuthLayout() {
       {/* Title bar */}
       <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4">
         <FolderOpen className="h-5 w-5 text-primary" />
-        <span className="text-sm font-semibold tracking-tight">omni-doc</span>
+        <span className="text-sm font-semibold tracking-tight">Omni Doc</span>
       </div>
 
       {/* Centered content */}

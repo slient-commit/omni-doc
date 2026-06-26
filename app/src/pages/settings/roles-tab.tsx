@@ -110,7 +110,7 @@ export default function RolesTab() {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button variant="ghost" size="icon" className="size-8" />
+                      <button className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" />
                     }
                   >
                     <MoreHorizontal className="size-4" />

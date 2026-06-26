@@ -20,9 +20,9 @@ async function sendVerificationEmail(to, token) {
     await resend.emails.send({
       from: config.emailFrom,
       to,
-      subject: 'Verify your email — omni-doc',
+      subject: 'Verify your email — Omni Doc',
       html: `
-        <h2>Welcome to omni-doc</h2>
+        <h2>Welcome to Omni Doc</h2>
         <p>Click the link below to verify your email address:</p>
         <p><a href="${url}">${url}</a></p>
         <p>This link expires in 24 hours.</p>
@@ -43,7 +43,7 @@ async function sendPasswordResetEmail(to, token) {
     await resend.emails.send({
       from: config.emailFrom,
       to,
-      subject: 'Reset your password — omni-doc',
+      subject: 'Reset your password — Omni Doc',
       html: `
         <h2>Password reset</h2>
         <p>Click the link below to reset your password:</p>

@@ -41,7 +41,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <FolderOpen className="h-5 w-5 text-primary" />
-          <span className="text-sm font-semibold">omni-doc</span>
+          <span className="text-sm font-semibold">Omni Doc</span>
         </div>
       </SidebarHeader>
 

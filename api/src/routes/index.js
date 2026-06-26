@@ -21,7 +21,7 @@ router.use('/auth', authRoutes);
 router.use('/shared', publicShareRoutes);
 
 router.get('/', (req, res) => {
-  res.json({ message: 'omni-doc API', version: '1.0.0' });
+  res.json({ message: 'Omni Doc API', version: '1.0.0' });
 });
 
 // Authenticated routes
