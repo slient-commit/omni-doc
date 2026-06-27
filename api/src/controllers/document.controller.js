@@ -159,4 +159,70 @@ async function uploadZip(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip };
+async function getEditorConfig(req, res, next) {
+  try {
+    const config = require('../config');
+    const jwt = require('jsonwebtoken');
+
+    if (!config.onlyofficeUrl || !config.onlyofficeJwtSecret) {
+      return res.status(501).json({ error: { message: 'ONLYOFFICE is not configured' } });
+    }
+
+    const doc = await documentService.getById({
+      id: req.params.id,
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+    });
+
+    const ext = doc.originalName.split('.').pop()?.toLowerCase() || '';
+    const typeMap = {
+      docx: 'word', doc: 'word', odt: 'word', rtf: 'word', txt: 'word',
+      xlsx: 'cell', xls: 'cell', ods: 'cell', csv: 'cell',
+      pptx: 'slide', ppt: 'slide', odp: 'slide',
+    };
+    const documentType = typeMap[ext];
+    if (!documentType) {
+      return res.status(400).json({ error: { message: 'File type not supported by ONLYOFFICE' } });
+    }
+
+    // ponytail: short-lived token scoped to this document — don't leak user's session JWT
+    const fileToken = jwt.sign(
+      { userId: req.user.id, organizationId: req.user.organizationId },
+      config.jwtSecret,
+      { expiresIn: '10m' },
+    );
+
+    // ponytail: ONLYOFFICE fetches from the public app URL (must be reachable from the container)
+    const downloadUrl = `${config.appUrl}/api/documents/${doc.uuid}/download?token=${fileToken}`;
+
+    const editorConfig = {
+      document: {
+        fileType: ext,
+        key: `${doc.uuid}-${new Date(doc.updatedAt).getTime()}`,
+        title: doc.originalName,
+        url: downloadUrl,
+        permissions: { edit: false, download: true, print: true },
+      },
+      documentType,
+      editorConfig: {
+        mode: 'view',
+        lang: 'en',
+        customization: {
+          forcesave: false,
+          compactHeader: true,
+          toolbarNoTabs: true,
+        },
+      },
+    };
+
+    const onlyofficeToken = jwt.sign(editorConfig, config.onlyofficeJwtSecret);
+    editorConfig.token = onlyofficeToken;
+
+    res.json({
+      onlyofficeUrl: config.onlyofficeUrl,
+      config: editorConfig,
+    });
+  } catch (err) { next(err); }
+}
+
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, getEditorConfig };

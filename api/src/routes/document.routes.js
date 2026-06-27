@@ -72,4 +72,10 @@ router.post('/:id/copy',
   ctrl.copyToFolder,
 );
 
+router.get('/:id/editor-config',
+  checkPermission('read', 'document'),
+  validate([param('id').notEmpty()]),
+  ctrl.getEditorConfig,
+);
+
 module.exports = router;

@@ -1,10 +1,20 @@
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { useDocument } from '@/hooks/use-document-queries';
+import { useDocument, useEditorConfig } from '@/hooks/use-document-queries';
 import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Download, Loader2, ShieldAlert } from 'lucide-react';
+
+const OFFICE_MIMES = new Set([
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-powerpoint',
+]);
 
 function isPreviewable(mimeType: string | null): boolean {
   if (!mimeType) return false;
@@ -13,8 +23,71 @@ function isPreviewable(mimeType: string | null): boolean {
     mimeType.startsWith('image/') ||
     mimeType.startsWith('text/') ||
     mimeType.startsWith('video/') ||
-    mimeType.startsWith('audio/')
+    mimeType.startsWith('audio/') ||
+    OFFICE_MIMES.has(mimeType)
   );
+}
+
+function isOfficeFile(mimeType: string | null): boolean {
+  return !!mimeType && OFFICE_MIMES.has(mimeType);
+}
+
+// ponytail: loads ONLYOFFICE JS API and renders the editor in view-only mode
+function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<unknown>(null);
+  const { data, isLoading, isError } = useEditorConfig(id, isOfficeFile(mimeType));
+
+  useEffect(() => {
+    if (!data || !containerRef.current) return;
+
+    const scriptId = 'onlyoffice-api-script';
+    const existingScript = document.getElementById(scriptId);
+
+    function initEditor() {
+      // @ts-expect-error — ONLYOFFICE global
+      if (!window.DocsAPI) return;
+      if (editorRef.current) return;
+      // @ts-expect-error — ONLYOFFICE global
+      editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-container', data.config);
+    }
+
+    if (existingScript) {
+      initEditor();
+    } else {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = `${data.onlyofficeUrl}/web-apps/apps/api/documents/api.js`;
+      script.async = true;
+      script.onload = initEditor;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (editorRef.current && typeof (editorRef.current as { destroyEditor?: () => void }).destroyEditor === 'function') {
+        (editorRef.current as { destroyEditor: () => void }).destroyEditor();
+      }
+      editorRef.current = null;
+    };
+  }, [data]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-sm text-muted-foreground">Office preview not available. Download the file to view it.</p>
+      </div>
+    );
+  }
+
+  return <div id="onlyoffice-container" ref={containerRef} className="h-full w-full" />;
 }
 
 export default function DocumentViewerPage() {
@@ -77,7 +150,9 @@ export default function DocumentViewerPage() {
 
       {canPreview ? (
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30">
-          {doc.mimeType?.startsWith('image/') ? (
+          {isOfficeFile(doc.mimeType) ? (
+            <OnlyOfficeViewer id={doc.uuid} mimeType={doc.mimeType!} />
+          ) : doc.mimeType?.startsWith('image/') ? (
             <div className="flex h-full items-center justify-center p-4">
               <img src={previewUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
             </div>
