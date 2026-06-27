@@ -52,8 +52,8 @@ async function list({ organizationId, parentId, userId, sharedWithMe, page = 1, 
     include: {
       _count: {
         select: {
-          children: { where: { deletedAt: null } },
-          documentFolders: { where: { document: { deletedAt: null } } },
+          children: { where: { deletedAt: null, OR: [{ isPrivate: false }, { createdById: userId }] } },
+          documentFolders: { where: { document: { deletedAt: null, OR: [{ isPrivate: false }, { createdById: userId }] } } },
         },
       },
       createdBy: { select: { id: true, firstName: true, lastName: true } },
@@ -67,9 +67,9 @@ async function getById({ id, userId, organizationId }) {
     where: { ...idOrUuid(id), ...folderVisibilityFilter(user) },
     include: {
       children: {
-        where: { deletedAt: null },
+        where: { deletedAt: null, OR: [{ isPrivate: false }, { createdById: userId }] },
         orderBy: { name: 'asc' },
-        include: { _count: { select: { children: { where: { deletedAt: null } }, documentFolders: { where: { document: { deletedAt: null } } } } } },
+        include: { _count: { select: { children: { where: { deletedAt: null, OR: [{ isPrivate: false }, { createdById: userId }] } }, documentFolders: { where: { document: { deletedAt: null, OR: [{ isPrivate: false }, { createdById: userId }] } } } } } },
       },
       documentFolders: {
         include: {
