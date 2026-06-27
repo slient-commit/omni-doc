@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLoginMutation } from '@/hooks/use-auth-mutations';
 import { useAuth } from '@/contexts/auth-context';
+import RecoverOrgPage from '@/pages/recover-org';
 import type { ApiError } from '@/types/auth';
 import { AxiosError } from 'axios';
 
@@ -17,17 +18,34 @@ export default function LoginPage() {
   const mutation = useLoginMutation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [orgDeletedData, setOrgDeletedData] = useState<any>(null);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     mutation.mutate(
       { email, password },
       {
-        onSuccess: (data) => {
-          login(data.token, data.user);
-          navigate('/');
+        onSuccess: (data: any) => {
+          if (data.orgDeleted) {
+            // Store token for recovery API calls
+            login(data.token, data.user);
+            setOrgDeletedData(data);
+          } else {
+            login(data.token, data.user);
+            navigate('/');
+          }
         },
       },
+    );
+  }
+
+  if (orgDeletedData) {
+    return (
+      <RecoverOrgPage
+        deletedAt={orgDeletedData.deletedAt}
+        recoveryDeadline={orgDeletedData.recoveryDeadline}
+        retentionDays={orgDeletedData.retentionDays}
+      />
     );
   }
 

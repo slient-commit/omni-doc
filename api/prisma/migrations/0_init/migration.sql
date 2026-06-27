@@ -4,6 +4,8 @@ CREATE TABLE `organizations` (
     `name` VARCHAR(255) NOT NULL,
     `slug` VARCHAR(100) NOT NULL,
     `storagePath` VARCHAR(500) NOT NULL,
+    `deletedAt` DATETIME(3) NULL,
+    `deletedById` INTEGER NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     UNIQUE INDEX `organizations_slug_key`(`slug`),

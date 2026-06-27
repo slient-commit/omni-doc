@@ -17,3 +17,17 @@ export function useUpdateOrganization() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['organization'] }),
   });
 }
+
+export function useDeleteOrganization() {
+  return useMutation({
+    mutationFn: (data: { confirmEmail: string }) =>
+      api.delete('/organization', { data }).then((r) => r.data),
+  });
+}
+
+export function useRecoverOrganization() {
+  return useMutation({
+    mutationFn: (data: { confirmEmail: string }) =>
+      api.post('/organization/recover', data).then((r) => r.data),
+  });
+}

@@ -38,6 +38,19 @@ async function cleanupTrash() {
   }
 
   console.log(`[trash-cleanup] Removed ${expiredDocs.length} documents, ${expiredFolders.length} folders`);
+
+  // ponytail: permanently delete orgs past retention period
+  const orgCutoff = new Date(Date.now() - config.orgRetentionDays * 24 * 60 * 60 * 1000);
+  const expiredOrgs = await prisma.organization.findMany({
+    where: { deletedAt: { not: null, lt: orgCutoff } },
+    select: { id: true, slug: true },
+  });
+  for (const org of expiredOrgs) {
+    console.log(`[trash-cleanup] Permanently deleting org: ${org.slug}`);
+    // ponytail: cascade via Prisma relations (onDelete: Cascade) handles most cleanup
+    await prisma.organization.delete({ where: { id: org.id } });
+  }
+  if (expiredOrgs.length) console.log(`[trash-cleanup] Removed ${expiredOrgs.length} expired organizations`);
 }
 
 module.exports = { cleanupTrash };

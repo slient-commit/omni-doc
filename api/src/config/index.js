@@ -15,6 +15,7 @@ const config = {
   appUrl: process.env.APP_URL || 'http://localhost:5173',
   storagePath: process.env.STORAGE_PATH || path.join(__dirname, '../../uploads'),
   trashRetentionDays: parseInt(process.env.TRASH_RETENTION_DAYS, 10) || 30,
+  orgRetentionDays: parseInt(process.env.ORG_RETENTION_DAYS, 10) || 30,
 };
 
 module.exports = config;

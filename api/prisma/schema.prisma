@@ -19,9 +19,11 @@ model Organization {
   id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(255)
   slug        String   @unique @db.VarChar(100)
-  storagePath String   @db.VarChar(500) // physical folder root for this org's files
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  storagePath String    @db.VarChar(500) // physical folder root for this org's files
+  deletedAt   DateTime?
+  deletedById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   users      User[]
   roles      Role[]

@@ -16,4 +16,14 @@ router.patch('/',
   ctrl.update,
 );
 
+router.delete('/',
+  validate([body('confirmEmail').isEmail().withMessage('Email confirmation required')]),
+  ctrl.softDelete,
+);
+
+router.post('/recover',
+  validate([body('confirmEmail').isEmail().withMessage('Email confirmation required')]),
+  ctrl.recover,
+);
+
 module.exports = router;

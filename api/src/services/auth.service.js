@@ -132,6 +132,30 @@ async function login({ email, password }) {
     throw err;
   }
 
+  // Check if organization is deleted
+  const org = await prisma.organization.findUnique({ where: { id: user.organizationId } });
+  if (org?.deletedAt && user.role.isSystem) {
+    // Owner of deleted org — issue token so they can recover
+    const token = jwt.sign(
+      { userId: user.id, organizationId: user.organizationId },
+      config.jwtSecret,
+      { expiresIn: config.jwtExpiresIn },
+    );
+    const expiresAt = new Date(org.deletedAt.getTime() + config.orgRetentionDays * 24 * 60 * 60 * 1000);
+    return {
+      orgDeleted: true,
+      token,
+      deletedAt: org.deletedAt,
+      recoveryDeadline: expiresAt,
+      retentionDays: config.orgRetentionDays,
+      user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role.name },
+    };
+  } else if (org?.deletedAt) {
+    const err = new Error('This organization has been deleted');
+    err.status = 403;
+    throw err;
+  }
+
   const token = jwt.sign(
     { userId: user.id, organizationId: user.organizationId },
     config.jwtSecret,
