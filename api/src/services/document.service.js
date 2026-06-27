@@ -121,7 +121,7 @@ async function getDownloadInfo({ id, userId, organizationId }) {
 
 async function update({ id, originalName, categoryId, documentDate, metadata, organizationId }) {
   const doc = await prisma.document.findFirst({
-    where: { id, organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
   if (!doc) {
     const err = new Error('Document not found');
@@ -135,25 +135,25 @@ async function update({ id, originalName, categoryId, documentDate, metadata, or
   if (documentDate !== undefined) data.documentDate = new Date(documentDate);
   if (metadata !== undefined) data.metadata = metadata;
 
-  return prisma.document.update({ where: { id }, data });
+  return prisma.document.update({ where: { id: doc.id }, data });
 }
 
 async function softDelete({ id, organizationId }) {
   const doc = await prisma.document.findFirst({
-    where: { id, organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
   if (!doc) {
     const err = new Error('Document not found');
     err.status = 404;
     throw err;
   }
-  await prisma.document.update({ where: { id }, data: { deletedAt: new Date() } });
+  await prisma.document.update({ where: { id: doc.id }, data: { deletedAt: new Date() } });
   return { message: 'Document moved to trash' };
 }
 
 async function hardDelete({ id, organizationId }) {
   const doc = await prisma.document.findFirst({
-    where: { id, organizationId },
+    where: { ...idOrUuid(id), organizationId },
     include: { organization: { select: { storagePath: true } } },
   });
   if (!doc) {
@@ -167,10 +167,10 @@ async function hardDelete({ id, organizationId }) {
   try { fs.unlinkSync(absPath); } catch { /* file may already be gone */ }
 
   await prisma.$transaction([
-    prisma.documentFolder.deleteMany({ where: { documentId: id } }),
-    prisma.documentInvite.deleteMany({ where: { documentId: id } }),
-    prisma.shareLink.deleteMany({ where: { documentId: id } }),
-    prisma.document.delete({ where: { id } }),
+    prisma.documentFolder.deleteMany({ where: { documentId: doc.id } }),
+    prisma.documentInvite.deleteMany({ where: { documentId: doc.id } }),
+    prisma.shareLink.deleteMany({ where: { documentId: doc.id } }),
+    prisma.document.delete({ where: { id: doc.id } }),
   ]);
 
   return { message: 'Document permanently deleted' };
@@ -178,20 +178,20 @@ async function hardDelete({ id, organizationId }) {
 
 async function restore({ id, organizationId }) {
   const doc = await prisma.document.findFirst({
-    where: { id, organizationId, deletedAt: { not: null } },
+    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null } },
   });
   if (!doc) {
     const err = new Error('Document not found in trash');
     err.status = 404;
     throw err;
   }
-  await prisma.document.update({ where: { id }, data: { deletedAt: null } });
+  await prisma.document.update({ where: { id: doc.id }, data: { deletedAt: null } });
   return { message: 'Document restored' };
 }
 
 async function move({ id, folderIds, organizationId }) {
   const doc = await prisma.document.findFirst({
-    where: { id, organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
   if (!doc) {
     const err = new Error('Document not found');
@@ -200,9 +200,9 @@ async function move({ id, folderIds, organizationId }) {
   }
 
   await prisma.$transaction([
-    prisma.documentFolder.deleteMany({ where: { documentId: id } }),
+    prisma.documentFolder.deleteMany({ where: { documentId: doc.id } }),
     ...folderIds.map((folderId) =>
-      prisma.documentFolder.create({ data: { documentId: id, folderId } }),
+      prisma.documentFolder.create({ data: { documentId: doc.id, folderId } }),
     ),
   ]);
 
