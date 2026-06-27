@@ -20,6 +20,7 @@ import {
   UserPlusIcon, Globe, Lock, Mail, X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { useMyPermissions } from "@/hooks/use-role-queries";
 
 interface ShareDialogProps {
   open: boolean;
@@ -43,6 +44,13 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
   const [emailExpiry, setEmailExpiry] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const { user: currentUser } = useAuth();
+
+  // Permission checks
+  const { data: myPerms } = useMyPermissions();
+  const canInvite = myPerms?.some((p) => p.action === 'create' && p.subject === 'invite') ?? false;
+  const canDeleteInvite = myPerms?.some((p) => p.action === 'delete' && p.subject === 'invite') ?? false;
+  const canCreateLink = myPerms?.some((p) => p.action === 'create' && p.subject === 'share_link') ?? false;
+  const canDeleteLink = myPerms?.some((p) => p.action === 'delete' && p.subject === 'share_link') ?? false;
 
   const { data: users } = useUsers();
   const { data: shareLinks } = useShareLinks();
@@ -126,7 +134,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
           </DialogHeader>
 
           {/* Invite users */}
-          <div className="grid gap-3">
+          {canInvite && <div className="grid gap-3">
             <Label className="flex items-center gap-1 text-sm font-medium">
               <UserPlusIcon className="size-4" /> Invite users
             </Label>
@@ -183,17 +191,17 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
                       <span>{invite.invitedUser.firstName} {invite.invitedUser.lastName}</span>
                       <Badge variant="secondary">{invite.permission}</Badge>
                     </div>
-                    <button
+                    {canDeleteInvite && <button
                       className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                       onClick={() => handleRemoveInvite(invite.id)}
                     >
                       <Trash2Icon className="size-3" />
-                    </button>
+                    </button>}
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Share links */}
           <div className="grid gap-3 border-t pt-3">
@@ -219,32 +227,34 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
                 >
                   <CopyIcon className="size-3.5" />
                 </button>
-                <button
+                {canDeleteLink && <button
                   className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                   onClick={() => deleteShareLink.mutate(link.id)}
                   title="Delete link"
                 >
                   <Trash2Icon className="size-3.5" />
-                </button>
+                </button>}
               </div>
             ))}
 
-            <Button variant="outline" size="sm" onClick={() => { setLinkModalOpen(true); setLinkType("public"); setLinkPassword(""); setLinkExpiry(""); }}>
-              <LinkIcon className="size-4" /> Create share link
-            </Button>
+            {canCreateLink && (
+              <Button variant="outline" size="sm" onClick={() => { setLinkModalOpen(true); setLinkType("public"); setLinkPassword(""); setLinkExpiry(""); }}>
+                <LinkIcon className="size-4" /> Create share link
+              </Button>
+            )}
 
             {copied && <p className="text-xs text-green-600">Link copied!</p>}
           </div>
 
           {/* Email share section */}
-          <div className="grid gap-3 border-t pt-3">
+          {canCreateLink && <div className="grid gap-3 border-t pt-3">
             <Label className="flex items-center gap-1 text-sm font-medium">
               <Mail className="size-4" /> Share via email
             </Label>
             <Button variant="outline" size="sm" onClick={() => { setEmailShareOpen(true); setEmailList([]); setEmailInput(""); setEmailExpiry(""); setEmailSent(false); }}>
               <Mail className="size-4" /> Send to email addresses
             </Button>
-          </div>
+          </div>}
         </DialogContent>
       </Dialog>
 

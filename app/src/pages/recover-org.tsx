@@ -14,7 +14,7 @@ interface RecoverOrgPageProps {
   retentionDays: number;
 }
 
-export default function RecoverOrgPage({ deletedAt, recoveryDeadline, retentionDays }: RecoverOrgPageProps) {
+export default function RecoverOrgPage({ deletedAt, recoveryDeadline }: RecoverOrgPageProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const recoverOrg = useRecoverOrganization();

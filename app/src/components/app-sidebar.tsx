@@ -16,11 +16,12 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
-const NAV_ITEMS = [
-  { label: 'All Documents', icon: Files, href: '/' },
-  { label: 'My Documents', icon: FolderOpen, href: '/my-documents' },
-  { label: 'Shared with Me', icon: Share2, href: '/shared' },
-  { label: 'Trash', icon: Trash2, href: '/trash' },
+// ponytail: nav items filtered by permissions in the component
+const ALL_NAV_ITEMS = [
+  { label: 'All Documents', icon: Files, href: '/', perm: null },
+  { label: 'My Documents', icon: FolderOpen, href: '/my-documents', perm: null },
+  { label: 'Shared with Me', icon: Share2, href: '/shared', perm: null },
+  { label: 'Trash', icon: Trash2, href: '/trash', perm: 'delete' as const },
 ];
 
 // ponytail: no base-ui render prop, no DropdownMenu — plain buttons + navigate to avoid error #31
@@ -33,6 +34,8 @@ export function AppSidebar() {
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '?';
   const hasPerm = (action: string, subject: string) => myPerms?.some((p) => p.action === action && p.subject === subject) ?? false;
   const canSettings = hasPerm('manage', 'organization') || hasPerm('read', 'user') || hasPerm('read', 'role');
+  const canTrash = hasPerm('delete', 'document') || hasPerm('delete', 'folder');
+  const navItems = ALL_NAV_ITEMS.filter((item) => !item.perm || (item.perm === 'delete' && canTrash));
 
   return (
     <Sidebar>
@@ -48,7 +51,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigate</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={location.pathname === item.href}

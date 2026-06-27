@@ -80,6 +80,7 @@ export function FileExplorerContextMenu({
   const canDelete = isOwner || (item.allowDelete && hasRolePerm('delete'));
   const canMove = isOwner || (item.allowMove && hasRolePerm('update'));
   const canCopy = isOwner || (item.allowCopy && hasRolePerm('create'));
+  const canShare = isOwner || myPerms?.some((p) => p.action === 'create' && (p.subject === 'share_link' || p.subject === 'invite')) ?? false;
 
   function menuItem(icon: ReactNode, label: string, onClick: () => void, options?: { destructive?: boolean; disabled?: boolean }) {
     const { destructive = false, disabled = false } = options ?? {};
@@ -131,7 +132,7 @@ export function FileExplorerContextMenu({
               )}
               {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true), { disabled: !canMove })}
               {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true), { disabled: !canCopy })}
-              {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
+              {canShare && menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
               {menuItem(<Settings2 className="size-4" />, canEdit ? 'Properties' : 'View details', () => setPropsOpen(true))}
               {canDelete && (
                 <>

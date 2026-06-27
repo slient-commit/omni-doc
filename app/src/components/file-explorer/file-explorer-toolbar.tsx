@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CreateFolderDialog } from '@/components/dialogs/create-folder-dialog';
 import { UploadDocumentDialog } from '@/components/dialogs/upload-document-dialog';
+import { useMyPermissions } from '@/hooks/use-role-queries';
 import { Search, FolderPlus, Upload, LayoutGrid, List } from 'lucide-react';
 
 interface FileExplorerToolbarProps {
@@ -21,6 +22,9 @@ export function FileExplorerToolbar({
 }: FileExplorerToolbarProps) {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const { data: myPerms } = useMyPermissions();
+  const canCreateFolder = myPerms?.some((p) => p.action === 'create' && p.subject === 'folder') ?? false;
+  const canCreateDocument = myPerms?.some((p) => p.action === 'create' && p.subject === 'document') ?? false;
 
   return (
     <>
@@ -35,15 +39,19 @@ export function FileExplorerToolbar({
           />
         </div>
 
-        <Button variant="outline" onClick={() => setCreateFolderOpen(true)}>
-          <FolderPlus className="size-4" />
-          New Folder
-        </Button>
+        {canCreateFolder && (
+          <Button variant="outline" onClick={() => setCreateFolderOpen(true)}>
+            <FolderPlus className="size-4" />
+            New Folder
+          </Button>
+        )}
 
-        <Button onClick={() => setUploadOpen(true)}>
-          <Upload className="size-4" />
-          Upload
-        </Button>
+        {canCreateDocument && (
+          <Button onClick={() => setUploadOpen(true)}>
+            <Upload className="size-4" />
+            Upload
+          </Button>
+        )}
 
         <ToggleGroup
           value={[viewMode]}

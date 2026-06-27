@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Navigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { useMyPermissions } from "@/hooks/use-role-queries";
 import { useTrash, useEmptyTrash } from "@/hooks/use-trash-queries";
 import { FileExplorerGrid } from "@/components/file-explorer/file-explorer-grid";
 import { FileExplorerList } from "@/components/file-explorer/file-explorer-list";
@@ -28,6 +29,9 @@ import {
 
 export default function TrashPage() {
   const navigate = useNavigate();
+  const { data: myPerms } = useMyPermissions();
+  const canTrash = myPerms?.some((p) => p.action === 'delete' && (p.subject === 'document' || p.subject === 'folder')) ?? false;
+  if (myPerms && !canTrash) return <Navigate to="/" replace />;
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
