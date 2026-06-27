@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const prisma = require('../lib/prisma');
+const { cleanupExpiredExports } = require('../services/export.service');
 const config = require('../config');
 
 // ponytail: runs at UTC midnight, deletes docs/folders trashed > TRASH_RETENTION_DAYS ago
@@ -51,6 +52,9 @@ async function cleanupTrash() {
     await prisma.organization.delete({ where: { id: org.id } });
   }
   if (expiredOrgs.length) console.log(`[trash-cleanup] Removed ${expiredOrgs.length} expired organizations`);
+
+  // Cleanup expired zip exports
+  await cleanupExpiredExports();
 }
 
 module.exports = { cleanupTrash };

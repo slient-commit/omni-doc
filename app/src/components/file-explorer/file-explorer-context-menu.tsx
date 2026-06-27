@@ -80,7 +80,7 @@ export function FileExplorerContextMenu({
   const canDelete = isOwner || (item.allowDelete && hasRolePerm('delete'));
   const canMove = isOwner || (item.allowMove && hasRolePerm('update'));
   const canCopy = isOwner || (item.allowCopy && hasRolePerm('create'));
-  const canShare = isOwner || myPerms?.some((p) => p.action === 'create' && (p.subject === 'share_link' || p.subject === 'invite')) ?? false;
+  const canShare = isOwner || (myPerms?.some((p) => p.action === 'create' && (p.subject === 'share_link' || p.subject === 'invite')) ?? false);
 
   function menuItem(icon: ReactNode, label: string, onClick: () => void, options?: { destructive?: boolean; disabled?: boolean }) {
     const { destructive = false, disabled = false } = options ?? {};

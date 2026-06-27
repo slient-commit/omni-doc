@@ -12,6 +12,20 @@ CREATE TABLE `organizations` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable: org_exports
+CREATE TABLE `org_exports` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `organizationId` INTEGER NOT NULL,
+    `requestedById` INTEGER NOT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'pending',
+    `filePath` VARCHAR(500) NULL,
+    `fileSize` BIGINT NULL,
+    `expiresAt` DATETIME(3) NULL,
+    `error` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- CreateTable: permissions
 CREATE TABLE `permissions` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
@@ -184,6 +198,8 @@ CREATE TABLE `share_links` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKeys
+ALTER TABLE `org_exports` ADD CONSTRAINT `org_exports_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organizations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE `roles` ADD CONSTRAINT `roles_organizationId_fkey` FOREIGN KEY (`organizationId`) REFERENCES `organizations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

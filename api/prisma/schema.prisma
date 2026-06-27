@@ -30,8 +30,25 @@ model Organization {
   categories Category[]
   documents  Document[]
   folders    Folder[]
+  exports    OrgExport[]
 
   @@map("organizations")
+}
+
+model OrgExport {
+  id             Int       @id @default(autoincrement())
+  organizationId Int
+  requestedById  Int
+  status         String    @default("pending") @db.VarChar(20) // pending, processing, ready, failed
+  filePath       String?   @db.VarChar(500)
+  fileSize       BigInt?
+  expiresAt      DateTime?
+  error          String?   @db.Text
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("org_exports")
 }
 
 // ---------------------------------------------------------------------------

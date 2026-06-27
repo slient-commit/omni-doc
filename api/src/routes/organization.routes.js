@@ -26,4 +26,8 @@ router.post('/recover',
   ctrl.recover,
 );
 
+router.post('/export', checkPermission('manage', 'organization'), ctrl.requestExport);
+router.get('/exports', checkPermission('manage', 'organization'), ctrl.listExports);
+router.get('/exports/:id/download', ctrl.downloadExport);
+
 module.exports = router;

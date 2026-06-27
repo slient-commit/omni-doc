@@ -31,3 +31,19 @@ export function useRecoverOrganization() {
       api.post('/organization/recover', data).then((r) => r.data),
   });
 }
+
+export function useRequestExport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post('/organization/export').then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['org-exports'] }),
+  });
+}
+
+export function useOrgExports() {
+  return useQuery({
+    queryKey: ['org-exports'],
+    queryFn: () => api.get<{ id: number; status: string; fileSize: number | null; expiresAt: string | null; createdAt: string; error: string | null }[]>('/organization/exports').then((r) => r.data),
+    refetchInterval: 10000,
+  });
+}

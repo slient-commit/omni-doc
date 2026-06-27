@@ -16,6 +16,7 @@ const config = {
   storagePath: process.env.STORAGE_PATH || path.join(__dirname, '../../uploads'),
   trashRetentionDays: parseInt(process.env.TRASH_RETENTION_DAYS, 10) || 30,
   orgRetentionDays: parseInt(process.env.ORG_RETENTION_DAYS, 10) || 30,
+  zipExpiryHours: parseInt(process.env.ZIP_EXPIRY_HOURS, 10) || 24,
 };
 
 module.exports = config;
