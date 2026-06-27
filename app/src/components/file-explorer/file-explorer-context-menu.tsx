@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useCallback, useRef, useEffect } from 'react';
+import { type ReactNode, type ReactElement, useState, useCallback, useRef, useEffect, cloneElement, isValidElement } from 'react';
 import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore, Settings2, FolderInput, Copy } from 'lucide-react';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
 import { useDeleteDocument, useRestoreDocument } from '@/hooks/use-document-queries';
@@ -82,9 +82,9 @@ export function FileExplorerContextMenu({
 
   return (
     <>
-      <div onContextMenu={handleContextMenu}>
-        {children}
-      </div>
+      {isValidElement(children)
+        ? cloneElement(children as ReactElement<{ onContextMenu?: (e: React.MouseEvent) => void }>, { onContextMenu: handleContextMenu })
+        : <div onContextMenu={handleContextMenu}>{children}</div>}
 
       {menuPos && (
         <div
