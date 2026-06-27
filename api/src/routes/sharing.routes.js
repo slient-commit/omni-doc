@@ -12,7 +12,7 @@ const documentInviteRoutes = Router({ mergeParams: true });
 documentInviteRoutes.post('/:id/invite',
   checkPermission('update', 'document'),
   validate([
-    param('id').isInt(),
+    param('id').notEmpty(),
     body('invitedUserId').isInt(),
     body('permission').isIn(['view', 'edit']),
   ]),
@@ -21,7 +21,7 @@ documentInviteRoutes.post('/:id/invite',
 
 documentInviteRoutes.delete('/:id/invite/:inviteId',
   checkPermission('update', 'document'),
-  validate([param('id').isInt(), param('inviteId').isInt()]),
+  validate([param('id').notEmpty(), param('inviteId').isInt()]),
   ctrl.deleteDocumentInvite,
 );
 
@@ -31,7 +31,7 @@ const folderInviteRoutes = Router({ mergeParams: true });
 folderInviteRoutes.post('/:id/invite',
   checkPermission('update', 'folder'),
   validate([
-    param('id').isInt(),
+    param('id').notEmpty(),
     body('invitedUserId').isInt(),
     body('permission').isIn(['view', 'edit']),
   ]),
@@ -40,7 +40,7 @@ folderInviteRoutes.post('/:id/invite',
 
 folderInviteRoutes.delete('/:id/invite/:inviteId',
   checkPermission('update', 'folder'),
-  validate([param('id').isInt(), param('inviteId').isInt()]),
+  validate([param('id').notEmpty(), param('inviteId').isInt()]),
   ctrl.deleteFolderInvite,
 );
 
@@ -59,7 +59,7 @@ shareLinkRoutes.get('/',
 
 shareLinkRoutes.delete('/:id',
   checkPermission('update', 'document'),
-  validate([param('id').isInt()]),
+  validate([param('id').notEmpty()]),
   ctrl.deleteShareLink,
 );
 
@@ -67,5 +67,6 @@ shareLinkRoutes.delete('/:id',
 const publicShareRoutes = Router();
 
 publicShareRoutes.get('/:token', ctrl.accessShareLink);
+publicShareRoutes.get('/:token/download', ctrl.downloadSharedFile);
 
 module.exports = { documentInviteRoutes, folderInviteRoutes, shareLinkRoutes, publicShareRoutes };

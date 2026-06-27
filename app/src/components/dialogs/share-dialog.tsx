@@ -19,6 +19,7 @@ import {
   CopyIcon, LinkIcon, Loader2Icon, ShareIcon, Trash2Icon,
   UserPlusIcon, Globe, Lock,
 } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ShareDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
   const [linkType, setLinkType] = useState<"public" | "private">("public");
   const [linkPassword, setLinkPassword] = useState("");
   const [linkExpiry, setLinkExpiry] = useState("");
+  const { user: currentUser } = useAuth();
 
   const { data: users } = useUsers();
   const { data: shareLinks } = useShareLinks();
@@ -64,6 +66,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
 
   const filteredUsers = users?.filter((u) =>
     u.isActive &&
+    u.id !== currentUser?.id &&
     !existingInvites.some((inv: any) => inv.invitedUser?.id === u.id) &&
     (u.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
