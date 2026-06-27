@@ -4,7 +4,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useFolders } from '@/hooks/use-folder-queries';
-import { useMoveDocument, useCopyDocument } from '@/hooks/use-document-queries';
+import { useMoveDocument } from '@/hooks/use-document-queries';
 import { useMoveFolder, useCopyFolder } from '@/hooks/use-folder-queries';
 import { Folder as FolderIcon, ChevronRight, Loader2, Home } from 'lucide-react';
 
@@ -34,7 +34,6 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName, c
   // Show "Root" option when item is inside a folder and we're at the top level of the picker
   const showRootOption = mode === 'move' && currentParent === null && !!currentFolderId;
   const moveDocument = useMoveDocument();
-  const copyDocument = useCopyDocument();
   const moveFolder = useMoveFolder();
   const copyFolder = useCopyFolder();
 
@@ -72,12 +71,8 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName, c
     const onSuccess = () => onOpenChange(false);
 
     if (type === 'document') {
-      if (mode === 'move') {
-        moveDocument.mutate({ id: itemId, folderIds: selectedFolderId ? [selectedFolderId] : [] }, { onSuccess });
-      } else {
-        if (!selectedFolderId) return;
-        copyDocument.mutate({ id: itemId, folderId: selectedFolderId }, { onSuccess });
-      }
+      // document copy is handled inline (no dialog), so this is always move
+      moveDocument.mutate({ id: itemId, folderIds: selectedFolderId ? [selectedFolderId] : [] }, { onSuccess });
     } else {
       // folder move/copy — targetParentId is the uuid of the destination
       if (mode === 'move') {
@@ -88,9 +83,9 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName, c
     }
   }
 
-  const isPending = moveDocument.isPending || copyDocument.isPending || moveFolder.isPending || copyFolder.isPending;
-  const isError = moveDocument.isError || copyDocument.isError || moveFolder.isError || copyFolder.isError;
-  const errorMsg = (moveDocument.error || copyDocument.error || moveFolder.error || copyFolder.error)?.message ?? `${mode} failed.`;
+  const isPending = moveDocument.isPending || moveFolder.isPending || copyFolder.isPending;
+  const isError = moveDocument.isError || moveFolder.isError || copyFolder.isError;
+  const errorMsg = (moveDocument.error || moveFolder.error || copyFolder.error)?.message ?? `${mode} failed.`;
 
   const canSubmit = mode === 'copy' ? !!selectedFolderId : true;
   const actionLabel = mode === 'move'

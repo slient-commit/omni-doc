@@ -2,7 +2,7 @@ import { type ReactNode, useState, useCallback, useRef, useEffect } from 'react'
 import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore, Settings2, FolderInput, Copy } from 'lucide-react';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
 import { useDeleteDocument, useRestoreDocument, useCopyDocument } from '@/hooks/use-document-queries';
-import { useCopyFolder } from '@/hooks/use-folder-queries';
+// ponytail: folder copy uses MoveDialog with mode='copy', no direct hook needed here
 import { RenameDialog } from '@/components/dialogs/rename-dialog';
 import { ConfirmDeleteDialog } from '@/components/dialogs/confirm-delete-dialog';
 import { ShareDialog } from '@/components/dialogs/share-dialog';
@@ -38,7 +38,6 @@ export function FileExplorerContextMenu({
   const restoreFolder = useRestoreFolder();
   const restoreDocument = useRestoreDocument();
   const copyDocument = useCopyDocument();
-  const copyFolder = useCopyFolder();
 
   const itemName = type === 'folder' ? (item as Folder).name : (item as Document).originalName;
   const uuid = item.uuid;
