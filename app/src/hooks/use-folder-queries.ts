@@ -77,3 +77,21 @@ export function useRestoreFolder() {
     },
   });
 }
+
+export function useMoveFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, targetParentId }: { id: number | string; targetParentId?: string | number | null }) =>
+      api.post(`/folders/${id}/move`, { targetParentId }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
+  });
+}
+
+export function useCopyFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, targetParentId }: { id: number | string; targetParentId?: string | number | null }) =>
+      api.post(`/folders/${id}/copy`, { targetParentId }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
+  });
+}

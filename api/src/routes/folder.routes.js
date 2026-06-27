@@ -52,4 +52,16 @@ router.post('/:id/restore',
   ctrl.restore,
 );
 
+router.post('/:id/move',
+  checkPermission('update', 'folder'),
+  validate([param('id').notEmpty()]),
+  ctrl.move,
+);
+
+router.post('/:id/copy',
+  checkPermission('create', 'folder'),
+  validate([param('id').notEmpty()]),
+  ctrl.copy,
+);
+
 module.exports = router;

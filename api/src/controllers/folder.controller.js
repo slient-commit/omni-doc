@@ -86,4 +86,27 @@ async function restore(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { create, list, getById, getAncestors, rename, softDelete, hardDelete, restore };
+async function move(req, res, next) {
+  try {
+    const result = await folderService.move({
+      id: req.params.id,
+      targetParentId: req.body.targetParentId || null,
+      organizationId: req.user.organizationId,
+    });
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
+async function copy(req, res, next) {
+  try {
+    const result = await folderService.copy({
+      id: req.params.id,
+      targetParentId: req.body.targetParentId || null,
+      organizationId: req.user.organizationId,
+      createdById: req.user.id,
+    });
+    res.status(201).json(result);
+  } catch (err) { next(err); }
+}
+
+module.exports = { create, list, getById, getAncestors, rename, softDelete, hardDelete, restore, move, copy };

@@ -115,8 +115,8 @@ export function FileExplorerContextMenu({
                 <Download className="size-4" />, 'Download',
                 () => window.open(`/api/documents/${uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank'),
               )}
-              {type === 'document' && menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true))}
-              {type === 'document' && menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true))}
+              {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true))}
+              {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true))}
               {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
               {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true))}
               <div className="my-1 h-px bg-border" />
@@ -133,8 +133,8 @@ export function FileExplorerContextMenu({
       <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={uuid} name={itemName} permanent />
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={type} id={uuid} />
       <EditPropertiesDialog open={propsOpen} onOpenChange={setPropsOpen} type={type} item={item} />
-      {type === 'document' && <MoveDialog open={moveOpen} onOpenChange={setMoveOpen} mode="move" documentId={uuid} documentName={itemName} />}
-      {type === 'document' && <MoveDialog open={copyOpen} onOpenChange={setCopyOpen} mode="copy" documentId={uuid} documentName={itemName} />}
+      <MoveDialog open={moveOpen} onOpenChange={setMoveOpen} mode="move" type={type} itemId={uuid} itemName={itemName} />
+      <MoveDialog open={copyOpen} onOpenChange={setCopyOpen} mode="copy" type={type} itemId={uuid} itemName={itemName} />
     </>
   );
 }

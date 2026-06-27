@@ -207,4 +207,50 @@ async function restore({ id, organizationId }) {
   return { message: 'Folder restored' };
 }
 
-module.exports = { create, list, getById, getAncestors, rename, softDelete, hardDelete, restore };
+async function move({ id, targetParentId, organizationId }) {
+  const folder = await prisma.folder.findFirst({
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+  });
+  if (!folder) {
+    const err = new Error('Folder not found');
+    err.status = 404;
+    throw err;
+  }
+  // Prevent moving a folder into itself or its descendants
+  if (targetParentId) {
+    const descendants = await getDescendantFolderIds(folder.id);
+    const resolvedTarget = await resolveId(targetParentId);
+    if (resolvedTarget === folder.id || descendants.includes(resolvedTarget)) {
+      const err = new Error('Cannot move a folder into itself or its subfolder');
+      err.status = 400;
+      throw err;
+    }
+  }
+  const newParentId = await resolveId(targetParentId);
+  await prisma.folder.update({ where: { id: folder.id }, data: { parentId: newParentId } });
+  return { message: 'Folder moved' };
+}
+
+async function copy({ id, targetParentId, organizationId, createdById }) {
+  const source = await prisma.folder.findFirst({
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+  });
+  if (!source) {
+    const err = new Error('Folder not found');
+    err.status = 404;
+    throw err;
+  }
+  const newParentId = await resolveId(targetParentId);
+  // ponytail: shallow copy — creates a new folder with same name, doesn't copy contents
+  const copied = await prisma.folder.create({
+    data: {
+      name: source.name,
+      parentId: newParentId,
+      organizationId,
+      createdById,
+    },
+  });
+  return copied;
+}
+
+module.exports = { create, list, getById, getAncestors, rename, softDelete, hardDelete, restore, move, copy };
