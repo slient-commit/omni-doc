@@ -44,7 +44,7 @@ export function useUploadDocument() {
 export function useUpdateDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number | string; originalName?: string; categoryId?: number | null; documentDate?: string; metadata?: Record<string, unknown> }) =>
+    mutationFn: ({ id, ...data }: { id: number | string; originalName?: string; categoryId?: number | null; documentDate?: string; metadata?: Record<string, unknown>; isPrivate?: boolean }) =>
       api.patch<Document>(`/documents/${id}`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   });

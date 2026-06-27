@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRenameFolder } from '@/hooks/use-folder-queries';
 import { useUpdateDocument } from '@/hooks/use-document-queries';
+import { useAuth } from '@/contexts/auth-context';
 import { Loader2Icon, Settings2Icon } from 'lucide-react';
 import type { Folder, Document } from '@/types/documents';
 
@@ -22,6 +23,7 @@ interface EditPropertiesDialogProps {
 export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPropertiesDialogProps) {
   const doc = type === 'document' ? (item as Document) : null;
   const folder = type === 'folder' ? (item as Folder) : null;
+  const { user } = useAuth();
 
   const [name, setName] = useState('');
   const [documentDate, setDocumentDate] = useState('');
@@ -30,6 +32,8 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
   const renameFolder = useRenameFolder();
   const updateDocument = useUpdateDocument();
   const mutation = type === 'folder' ? renameFolder : updateDocument;
+
+  const isOwner = item.createdById === user?.id;
 
   useEffect(() => {
     if (!open) return;
@@ -48,15 +52,15 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
     if (!name.trim()) return;
 
     if (type === 'folder') {
-      renameFolder.mutate({ id: item.id, name: name.trim() }, {
+      renameFolder.mutate({ id: item.uuid, name: name.trim() }, {
         onSuccess: () => onOpenChange(false),
       });
     } else {
       updateDocument.mutate({
-        id: item.id,
+        id: item.uuid,
         originalName: name.trim(),
         documentDate: documentDate || undefined,
-        // ponytail: isPrivate update not in API yet, add PATCH field when needed
+        ...(isOwner ? { isPrivate } : {}),
       }, {
         onSuccess: () => onOpenChange(false),
       });
@@ -88,10 +92,10 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
               </div>
             )}
 
-            {type === 'document' && (
+            {type === 'document' && isOwner && (
               <div className="flex items-center gap-2">
                 <Checkbox id="prop-private" checked={isPrivate} onCheckedChange={(c) => setIsPrivate(c === true)} />
-                <Label htmlFor="prop-private">Private</Label>
+                <Label htmlFor="prop-private">Private (only you can see this)</Label>
               </div>
             )}
           </div>

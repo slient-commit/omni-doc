@@ -132,7 +132,7 @@ async function getDownloadInfo({ id, userId, organizationId }) {
   };
 }
 
-async function update({ id, originalName, categoryId, documentDate, metadata, organizationId, userId }) {
+async function update({ id, originalName, categoryId, documentDate, metadata, isPrivate, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
     where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
   });
@@ -142,11 +142,19 @@ async function update({ id, originalName, categoryId, documentDate, metadata, or
     throw err;
   }
 
+  // Only the owner can toggle isPrivate
+  if (isPrivate !== undefined && doc.createdById !== userId) {
+    const err = new Error('Only the owner can change privacy');
+    err.status = 403;
+    throw err;
+  }
+
   const data = {};
   if (originalName !== undefined) data.originalName = originalName;
   if (categoryId !== undefined) data.categoryId = categoryId ? parseInt(categoryId, 10) : null;
   if (documentDate !== undefined) data.documentDate = new Date(documentDate);
   if (metadata !== undefined) data.metadata = metadata;
+  if (isPrivate !== undefined) data.isPrivate = isPrivate;
 
   return prisma.document.update({ where: { id: doc.id }, data });
 }
