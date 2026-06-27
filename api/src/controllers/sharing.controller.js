@@ -131,9 +131,22 @@ async function downloadSharedFile(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function emailShare(req, res, next) {
+  try {
+    const result = await sharingService.emailShare({
+      documentId: req.body.documentId,
+      folderId: req.body.folderId,
+      emails: req.body.emails,
+      expiresAt: req.body.expiresAt,
+      createdById: req.user.id,
+    });
+    res.status(201).json(result);
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   createDocumentInvite, deleteDocumentInvite,
   createFolderInvite, deleteFolderInvite,
   createShareLink, listShareLinks, deleteShareLink,
-  accessShareLink, downloadSharedFile,
+  accessShareLink, downloadSharedFile, emailShare,
 };

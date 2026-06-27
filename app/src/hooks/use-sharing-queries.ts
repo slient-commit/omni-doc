@@ -61,3 +61,10 @@ export function useDeleteShareLink() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['share-links'] }),
   });
 }
+
+export function useEmailShare() {
+  return useMutation({
+    mutationFn: (data: { documentId?: number | string; folderId?: number | string; emails: string[]; expiresAt?: string }) =>
+      api.post('/share-links/email', data).then((r) => r.data),
+  });
+}

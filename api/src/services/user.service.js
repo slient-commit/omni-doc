@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { generateToken, generateTokenExpiry } = require('../lib/token');
-const { sendVerificationEmail } = require('../lib/email');
+const { sendInviteEmail } = require('../lib/email');
 
 async function list({ organizationId }) {
   return prisma.user.findMany({
@@ -83,8 +83,13 @@ async function invite({ email, firstName, lastName, roleId, organizationId, invi
     },
   });
 
-  // Send verification email (fire-and-forget)
-  sendVerificationEmail(email, token);
+  // Get inviter and org names for the email
+  const inviter = await prisma.user.findUnique({ where: { id: invitedById }, select: { firstName: true, lastName: true } });
+  const org = await prisma.organization.findUnique({ where: { id: organizationId }, select: { name: true } });
+  const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : 'Your team';
+  const orgName = org?.name || 'your organization';
+
+  sendInviteEmail(email, token, inviterName, orgName);
 
   return user;
 }

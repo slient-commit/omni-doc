@@ -3,7 +3,8 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateToken } = require('../lib/token');
-const { sendVerificationEmail } = require('../lib/email'); // ponytail: reuse for invite notification
+const { sendShareEmail } = require('../lib/email');
+const config = require('../config');
 
 // ponytail: resolve uuid to numeric id
 async function resolveDocId(identifier) {
@@ -224,8 +225,76 @@ async function accessShareLink({ token, password }) {
   throw err2;
 }
 
+// --- Email share (public, per-recipient links, not visible in app) ---
+async function emailShare({ documentId, folderId, emails, expiresAt, createdById }) {
+  const sender = await prisma.user.findUnique({
+    where: { id: createdById },
+    select: { firstName: true, lastName: true },
+  });
+  const senderName = sender ? `${sender.firstName} ${sender.lastName}` : 'Someone';
+
+  let itemName = 'Shared item';
+  let itemType = 'document';
+
+  if (documentId) {
+    const resolved = await resolveDocId(documentId);
+    if (!resolved) { const err = new Error('Document not found'); err.status = 404; throw err; }
+    const doc = await prisma.document.findUnique({ where: { id: resolved }, select: { originalName: true } });
+    itemName = doc?.originalName || 'Document';
+    itemType = 'document';
+
+    // Create one link per email — each is unique, not listed in app
+    const results = [];
+    for (const email of emails) {
+      const token = generateToken();
+      const link = await prisma.shareLink.create({
+        data: {
+          token,
+          documentId: resolved,
+          createdById,
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+        },
+      });
+      const shareUrl = `${config.appUrl}/shared/${token}`;
+      sendShareEmail({ to: email, shareUrl, itemName, itemType, senderName, expiresAt });
+      results.push({ email, token: link.token });
+    }
+    return { message: `Shared with ${results.length} recipient(s)`, results };
+  }
+
+  if (folderId) {
+    const resolved = await resolveFolderId(folderId);
+    if (!resolved) { const err = new Error('Folder not found'); err.status = 404; throw err; }
+    const folder = await prisma.folder.findUnique({ where: { id: resolved }, select: { name: true } });
+    itemName = folder?.name || 'Folder';
+    itemType = 'folder';
+
+    const results = [];
+    for (const email of emails) {
+      const token = generateToken();
+      const link = await prisma.shareLink.create({
+        data: {
+          token,
+          folderId: resolved,
+          createdById,
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+        },
+      });
+      const shareUrl = `${config.appUrl}/shared/${token}`;
+      sendShareEmail({ to: email, shareUrl, itemName, itemType, senderName, expiresAt });
+      results.push({ email, token: link.token });
+    }
+    return { message: `Shared with ${results.length} recipient(s)`, results };
+  }
+
+  const err = new Error('documentId or folderId required');
+  err.status = 400;
+  throw err;
+}
+
 module.exports = {
   createDocumentInvite, deleteDocumentInvite,
   createFolderInvite, deleteFolderInvite,
   createShareLink, listShareLinks, deleteShareLink, accessShareLink,
+  emailShare,
 };

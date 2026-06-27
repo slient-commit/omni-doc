@@ -11,13 +11,13 @@ import { useUsers } from "@/hooks/use-user-queries";
 import {
   useCreateDocumentInvite, useDeleteDocumentInvite,
   useCreateFolderInvite, useDeleteFolderInvite,
-  useCreateShareLink, useShareLinks, useDeleteShareLink,
+  useCreateShareLink, useShareLinks, useDeleteShareLink, useEmailShare,
 } from "@/hooks/use-sharing-queries";
 import { useDocument } from "@/hooks/use-document-queries";
 import { useFolder } from "@/hooks/use-folder-queries";
 import {
   CopyIcon, LinkIcon, Loader2Icon, ShareIcon, Trash2Icon,
-  UserPlusIcon, Globe, Lock,
+  UserPlusIcon, Globe, Lock, Mail, X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -37,6 +37,11 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
   const [linkType, setLinkType] = useState<"public" | "private">("public");
   const [linkPassword, setLinkPassword] = useState("");
   const [linkExpiry, setLinkExpiry] = useState("");
+  const [emailShareOpen, setEmailShareOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailList, setEmailList] = useState<string[]>([]);
+  const [emailExpiry, setEmailExpiry] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const { user: currentUser } = useAuth();
 
   const { data: users } = useUsers();
@@ -50,6 +55,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
   const deleteFolderInvite = useDeleteFolderInvite();
   const createShareLink = useCreateShareLink();
   const deleteShareLink = useDeleteShareLink();
+  const emailShare = useEmailShare();
 
   const inviteMutation = type === "document" ? createDocInvite : createFolderInvite;
 
@@ -229,6 +235,16 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
 
             {copied && <p className="text-xs text-green-600">Link copied!</p>}
           </div>
+
+          {/* Email share section */}
+          <div className="grid gap-3 border-t pt-3">
+            <Label className="flex items-center gap-1 text-sm font-medium">
+              <Mail className="size-4" /> Share via email
+            </Label>
+            <Button variant="outline" size="sm" onClick={() => { setEmailShareOpen(true); setEmailList([]); setEmailInput(""); setEmailExpiry(""); setEmailSent(false); }}>
+              <Mail className="size-4" /> Send to email addresses
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -298,6 +314,90 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
               Create link
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email share modal */}
+      <Dialog open={emailShareOpen} onOpenChange={setEmailShareOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Share via Email</DialogTitle>
+            <DialogDescription>Send a unique link to each email address.</DialogDescription>
+          </DialogHeader>
+
+          {emailSent ? (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <Mail className="size-10 text-green-500" />
+              <p className="text-sm font-medium">Emails sent successfully!</p>
+              <Button variant="outline" size="sm" onClick={() => setEmailShareOpen(false)}>Done</Button>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label>Email addresses</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const email = emailInput.trim().replace(/,$/,'');
+                        if (email && email.includes('@') && !emailList.includes(email)) {
+                          setEmailList([...emailList, email]);
+                          setEmailInput('');
+                        }
+                      }
+                    }}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const email = emailInput.trim();
+                    if (email && email.includes('@') && !emailList.includes(email)) {
+                      setEmailList([...emailList, email]);
+                      setEmailInput('');
+                    }
+                  }}>Add</Button>
+                </div>
+                {emailList.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {emailList.map((email) => (
+                      <Badge key={email} variant="secondary" className="gap-1 pr-1">
+                        {email}
+                        <button className="cursor-pointer rounded-full p-0.5 hover:bg-accent" onClick={() => setEmailList(emailList.filter((e) => e !== email))}>
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="email-expiry">Expires at (optional)</Label>
+                <Input id="email-expiry" type="datetime-local" value={emailExpiry} onChange={(e) => setEmailExpiry(e.target.value)} />
+              </div>
+
+              {emailShare.isError && <p className="text-xs text-destructive">{emailShare.error?.message}</p>}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEmailShareOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={() => {
+                    const data: any = { emails: emailList };
+                    if (type === 'document') data.documentId = id;
+                    else data.folderId = id;
+                    if (emailExpiry) data.expiresAt = new Date(emailExpiry).toISOString();
+                    emailShare.mutate(data, { onSuccess: () => setEmailSent(true) });
+                  }}
+                  disabled={emailList.length === 0 || emailShare.isPending}
+                >
+                  {emailShare.isPending && <Loader2Icon className="size-4 animate-spin" />}
+                  Send ({emailList.length})
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

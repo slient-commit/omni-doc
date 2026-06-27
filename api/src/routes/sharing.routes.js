@@ -66,6 +66,15 @@ shareLinkRoutes.delete('/:id',
   ctrl.deleteShareLink,
 );
 
+shareLinkRoutes.post('/email',
+  checkPermission('create', 'share_link'),
+  validate([
+    body('emails').isArray({ min: 1 }).withMessage('At least one email required'),
+    body('emails.*').isEmail().withMessage('Invalid email address'),
+  ]),
+  ctrl.emailShare,
+);
+
 // Public share access route (mounted under /shared, no auth)
 const publicShareRoutes = Router();
 
