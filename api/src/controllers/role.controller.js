@@ -51,4 +51,14 @@ async function listPermissions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { list, create, update, remove, listPermissions };
+async function myPermissions(req, res, next) {
+  try {
+    const perms = await require('../lib/prisma').rolePermission.findMany({
+      where: { roleId: req.user.roleId },
+      include: { permission: true },
+    });
+    res.json(perms.map((rp) => ({ action: rp.permission.action, subject: rp.permission.subject })));
+  } catch (err) { next(err); }
+}
+
+module.exports = { list, create, update, remove, listPermissions, myPermissions };

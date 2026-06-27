@@ -12,6 +12,9 @@ router.get('/', checkPermission('read', 'role'), ctrl.list);
 
 router.get('/permissions', checkPermission('read', 'role'), ctrl.listPermissions);
 
+// ponytail: returns current user's role permissions — no permission check needed (own data)
+router.get('/my-permissions', ctrl.myPermissions);
+
 router.post('/',
   checkPermission('create', 'role'),
   validate([body('name').notEmpty().withMessage('Role name is required')]),

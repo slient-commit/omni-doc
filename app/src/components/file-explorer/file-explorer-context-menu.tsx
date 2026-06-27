@@ -8,6 +8,7 @@ import { ShareDialog } from '@/components/dialogs/share-dialog';
 import { EditPropertiesDialog } from '@/components/dialogs/edit-properties-dialog';
 import { MoveDialog } from '@/components/dialogs/move-dialog';
 import { useAuth } from '@/contexts/auth-context';
+import { useMyPermissions } from '@/hooks/use-role-queries';
 import type { Folder, Document } from '@/types/documents';
 
 interface FileExplorerContextMenuProps {
@@ -31,6 +32,7 @@ export function FileExplorerContextMenu({
   const [copyOpen, setCopyOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { token, user: currentUser } = useAuth();
+  const { data: myPerms } = useMyPermissions();
 
   const deleteFolder = useDeleteFolder();
   const deleteDocument = useDeleteDocument();
@@ -70,11 +72,14 @@ export function FileExplorerContextMenu({
   }, [menuPos, closeMenu]);
 
   const isOwner = item.createdById === currentUser?.id;
-  // ponytail: owner always has full control; non-owners check per-item flags
-  const canEdit = isOwner || item.allowEdit;
-  const canDelete = isOwner || item.allowDelete;
-  const canMove = isOwner || item.allowMove;
-  const canCopy = isOwner || item.allowCopy;
+  // ponytail: combine item-level flags + role-level permissions
+  // owner always has full control; non-owners need BOTH item flag AND role permission
+  const subject = type === 'folder' ? 'folder' : 'document';
+  const hasRolePerm = (action: string) => myPerms?.some((p) => p.action === action && p.subject === subject) ?? false;
+  const canEdit = isOwner || (item.allowEdit && hasRolePerm('update'));
+  const canDelete = isOwner || (item.allowDelete && hasRolePerm('delete'));
+  const canMove = isOwner || (item.allowMove && hasRolePerm('update'));
+  const canCopy = isOwner || (item.allowCopy && hasRolePerm('create'));
 
   function menuItem(icon: ReactNode, label: string, onClick: () => void, options?: { destructive?: boolean; disabled?: boolean }) {
     const { destructive = false, disabled = false } = options ?? {};

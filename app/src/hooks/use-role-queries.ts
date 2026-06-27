@@ -9,6 +9,14 @@ export function useRoles() {
   });
 }
 
+export function useMyPermissions() {
+  return useQuery({
+    queryKey: ['my-permissions'],
+    queryFn: () => api.get<{ action: string; subject: string }[]>('/roles/my-permissions').then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // ponytail: cache 5 min, permissions rarely change
+  });
+}
+
 export function usePermissions() {
   return useQuery({
     queryKey: ['permissions'],
