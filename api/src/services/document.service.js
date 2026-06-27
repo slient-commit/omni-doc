@@ -6,15 +6,8 @@ const prisma = require('../lib/prisma');
 const config = require('../config');
 const { documentVisibilityFilter, sharedWithMeDocumentFilter } = require('../lib/visibility');
 const { checkItemPermission } = require('../lib/authorize');
-
-// ponytail: resolve folder uuid to numeric id for FK
-async function resolveFolderId(identifier) {
-  if (!identifier) return null;
-  const num = Number(identifier);
-  if (Number.isInteger(num)) return num;
-  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
-  return folder?.id ?? null;
-}
+const { resolveDocId: _resolveDocId, resolveFolderId, idOrUuidDoc: idOrUuid } = require('../lib/resolveId');
+const { resolveFilePath } = require('../lib/filePath');
 
 async function upload({ file, documentDate, categoryId, folderId, organizationId, createdById, isPrivate, allowEdit, allowDelete, allowMove, allowCopy, metadata }) {
   const toBool = (v) => v === 'true' || v === true;
@@ -87,12 +80,6 @@ async function list({ organizationId, userId, folderId, categoryId, search, crea
   });
 }
 
-// ponytail: accepts numeric id or string uuid
-function idOrUuid(identifier) {
-  const num = Number(identifier);
-  return Number.isInteger(num) ? { id: num } : { uuid: identifier };
-}
-
 async function getById({ id, userId, organizationId }) {
   const user = { id: userId, organizationId };
   const document = await prisma.document.findFirst({
@@ -112,18 +99,6 @@ async function getById({ id, userId, organizationId }) {
     throw err;
   }
   return document;
-}
-
-function resolveFilePath(orgStoragePath, filePath) {
-  const orgDir = path.resolve(config.storagePath, orgStoragePath);
-  const resolved = path.resolve(orgDir, filePath);
-  // ponytail: path traversal guard
-  if (!resolved.startsWith(orgDir)) {
-    const err = new Error('Invalid file path');
-    err.status = 400;
-    throw err;
-  }
-  return resolved;
 }
 
 async function getDownloadInfo({ id, userId, organizationId }) {

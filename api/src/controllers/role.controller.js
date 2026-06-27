@@ -53,11 +53,8 @@ async function listPermissions(req, res, next) {
 
 async function myPermissions(req, res, next) {
   try {
-    const perms = await require('../lib/prisma').rolePermission.findMany({
-      where: { roleId: req.user.roleId },
-      include: { permission: true },
-    });
-    res.json(perms.map((rp) => ({ action: rp.permission.action, subject: rp.permission.subject })));
+    const perms = await roleService.myPermissions({ roleId: req.user.roleId });
+    res.json(perms);
   } catch (err) { next(err); }
 }
 

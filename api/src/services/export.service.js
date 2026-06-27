@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 const prisma = require('../lib/prisma');
 const config = require('../config');
 
@@ -82,7 +82,7 @@ async function generateZip(jobId, organizationId, userId) {
   const zipFilename = `${org.slug}-${Date.now()}.zip`;
   const zipPath = path.join(exportDir, zipFilename);
   const output = fs.createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 5 } });
+  const archive = new ZipArchive({ zlib: { level: 5 } });
 
   archive.pipe(output);
 

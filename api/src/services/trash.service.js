@@ -1,13 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const prisma = require('../lib/prisma');
-const config = require('../config');
-
-function resolveFilePath(orgStoragePath, filePath) {
-  return path.join(config.storagePath, orgStoragePath, filePath);
-}
+const { resolveFilePath } = require('../lib/filePath');
 
 async function list({ organizationId }) {
   const [documents, folders] = await Promise.all([

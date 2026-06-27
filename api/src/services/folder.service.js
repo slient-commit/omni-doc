@@ -3,12 +3,7 @@
 const prisma = require('../lib/prisma');
 const { folderVisibilityFilter, sharedWithMeFolderFilter } = require('../lib/visibility');
 const { checkItemPermission } = require('../lib/authorize');
-
-// ponytail: accepts numeric id or string uuid
-function idOrUuid(identifier) {
-  const num = Number(identifier);
-  return Number.isInteger(num) ? { id: num } : { uuid: identifier };
-}
+const { resolveFolderId: resolveId, idOrUuidFolder: idOrUuid } = require('../lib/resolveId');
 
 async function create({ name, parentId, organizationId, createdById, isPrivate, allowEdit = true, allowDelete = true, allowMove = true, allowCopy = true }) {
   const resolvedParentId = await resolveId(parentId);
@@ -28,14 +23,6 @@ async function create({ name, parentId, organizationId, createdById, isPrivate, 
   });
 }
 
-// ponytail: resolve uuid to numeric id for FK lookups
-async function resolveId(identifier) {
-  if (!identifier) return null;
-  const num = Number(identifier);
-  if (Number.isInteger(num)) return num;
-  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
-  return folder?.id ?? null;
-}
 
 async function list({ organizationId, parentId, userId, sharedWithMe, page = 1, limit = 100 }) {
   const user = { id: userId, organizationId };

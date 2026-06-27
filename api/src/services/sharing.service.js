@@ -5,23 +5,7 @@ const prisma = require('../lib/prisma');
 const { generateToken } = require('../lib/token');
 const { sendShareEmail } = require('../lib/email');
 const config = require('../config');
-
-// ponytail: resolve uuid to numeric id
-async function resolveDocId(identifier) {
-  if (!identifier) return null;
-  const num = Number(identifier);
-  if (Number.isInteger(num)) return num;
-  const doc = await prisma.document.findUnique({ where: { uuid: identifier }, select: { id: true } });
-  return doc?.id ?? null;
-}
-
-async function resolveFolderId(identifier) {
-  if (!identifier) return null;
-  const num = Number(identifier);
-  if (Number.isInteger(num)) return num;
-  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
-  return folder?.id ?? null;
-}
+const { resolveDocId, resolveFolderId } = require('../lib/resolveId');
 
 // --- Document Invites ---
 

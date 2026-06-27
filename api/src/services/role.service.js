@@ -103,4 +103,12 @@ async function listPermissions() {
   });
 }
 
-module.exports = { list, create, update, remove, listPermissions };
+async function myPermissions({ roleId }) {
+  const perms = await prisma.rolePermission.findMany({
+    where: { roleId },
+    include: { permission: true },
+  });
+  return perms.map((rp) => ({ action: rp.permission.action, subject: rp.permission.subject }));
+}
+
+module.exports = { list, create, update, remove, listPermissions, myPermissions };
