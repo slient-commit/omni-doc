@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useUsers, useUpdateUser, useDeactivateUser } from "@/hooks/use-user-queries";
 import { useAuth } from "@/contexts/auth-context";
+import { useMyPermissions } from "@/hooks/use-role-queries";
 import { useRoles } from "@/hooks/use-role-queries";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,10 +19,12 @@ import {
 } from "lucide-react";
 import type { OrgUser } from "@/types/users";
 
-function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit, onDelete }: {
+function ActionMenu({ user, roles, isOwner, canEditUser, canDeleteUser, onChangeRole, onToggleActive, onEdit, onDelete }: {
   user: OrgUser;
   roles: { id: number; name: string }[];
   isOwner: boolean;
+  canEditUser: boolean;
+  canDeleteUser: boolean;
   onChangeRole: (roleId: number) => void;
   onToggleActive: () => void;
   onEdit: () => void;
@@ -53,13 +56,15 @@ function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit
       </button>
       {open && (
         <div className="fixed z-50 mt-1 min-w-[180px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md" style={{ transform: 'translateX(-80%)' }}>
-          <button
-            className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-            onClick={() => { onEdit(); close(); }}
-          >
-            <Pencil className="size-4" /> Edit
-          </button>
-          {!isOwner && (
+          {canEditUser && (
+            <button
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+              onClick={() => { onEdit(); close(); }}
+            >
+              <Pencil className="size-4" /> Edit
+            </button>
+          )}
+          {!isOwner && canEditUser && (
             <>
               <button
                 className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
@@ -89,13 +94,15 @@ function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit
               >
                 {user.isActive ? <><UserMinus className="size-4" /> Deactivate</> : <><UserCheck className="size-4" /> Activate</>}
               </button>
-              <button
-                className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
-                onClick={() => { onDelete(); close(); }}
-              >
-                <Trash2 className="size-4" /> Delete
-              </button>
             </>
+          )}
+          {!isOwner && canDeleteUser && (
+            <button
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+              onClick={() => { onDelete(); close(); }}
+            >
+              <Trash2 className="size-4" /> Delete
+            </button>
           )}
         </div>
       )}
@@ -157,7 +164,13 @@ function EditUserDialog({ open, onOpenChange, user }: {
 
 export default function UsersTab() {
   const { user: currentUser } = useAuth();
+  const { data: myPerms } = useMyPermissions();
   const { data: users = [], isLoading } = useUsers();
+  const hasPerm = (action: string) => myPerms?.some((p) => p.action === action && p.subject === 'user') ?? false;
+  const canEditUser = hasPerm('update');
+  const canDeleteUser = hasPerm('delete');
+  const canCreateUser = hasPerm('create');
+  const showActions = canEditUser || canDeleteUser;
   const { data: roles = [] } = useRoles();
   const updateUser = useUpdateUser();
   const deactivateUser = useDeactivateUser();
@@ -179,9 +192,11 @@ export default function UsersTab() {
         <p className="text-sm text-muted-foreground">
           {users.length} {users.length === 1 ? "user" : "users"} in your organization.
         </p>
-        <Button onClick={() => setInviteOpen(true)}>
-          <UserPlus className="size-4" /> Invite User
-        </Button>
+        {canCreateUser && (
+          <Button onClick={() => setInviteOpen(true)}>
+            <UserPlus className="size-4" /> Invite User
+          </Button>
+        )}
       </div>
 
       <Table>
@@ -191,7 +206,7 @@ export default function UsersTab() {
             <TableHead>Email</TableHead>
             <TableHead className="w-32">Role</TableHead>
             <TableHead className="w-28">Status</TableHead>
-            <TableHead className="w-24">Actions</TableHead>
+            {showActions && <TableHead className="w-24">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -208,17 +223,19 @@ export default function UsersTab() {
                     {user.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                {showActions && <TableCell>
                   <ActionMenu
                     user={user}
                     roles={roles}
                     isOwner={isSelf}
+                    canEditUser={canEditUser}
+                    canDeleteUser={canDeleteUser}
                     onChangeRole={(roleId) => updateUser.mutate({ id: user.id, roleId })}
                     onToggleActive={() => updateUser.mutate({ id: user.id, isActive: !user.isActive })}
                     onEdit={() => setEditUser(user)}
                     onDelete={() => setDeleteUser(user)}
                   />
-                </TableCell>
+                </TableCell>}
               </TableRow>
             );
           })}

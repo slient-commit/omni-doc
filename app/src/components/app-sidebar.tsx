@@ -1,6 +1,7 @@
 import { Files, FolderOpen, Share2, Trash2, LogOut, Cog } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/auth-context';
+import { useMyPermissions } from '@/hooks/use-role-queries';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Sidebar,
@@ -27,8 +28,11 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: myPerms } = useMyPermissions();
 
   const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '?';
+  const hasPerm = (action: string, subject: string) => myPerms?.some((p) => p.action === action && p.subject === subject) ?? false;
+  const canSettings = hasPerm('manage', 'organization') || hasPerm('read', 'user') || hasPerm('read', 'role');
 
   return (
     <Sidebar>
@@ -68,13 +72,15 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2 space-y-1">
-        <button
-          className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent"
-          onClick={() => navigate('/settings')}
-        >
-          <Cog className="h-4 w-4" />
-          <span>Settings</span>
-        </button>
+        {canSettings && (
+          <button
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent"
+            onClick={() => navigate('/settings')}
+          >
+            <Cog className="h-4 w-4" />
+            <span>Settings</span>
+          </button>
+        )}
         <div className="flex items-center gap-2 rounded-md px-2 py-2">
           <Avatar className="h-7 w-7">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRoles, useDeleteRole } from "@/hooks/use-role-queries";
+import { useRoles, useDeleteRole, useMyPermissions } from "@/hooks/use-role-queries";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -16,10 +16,12 @@ import {
 import type { Role } from "@/types/users";
 
 // ponytail: native popover — base-ui DropdownMenu crashes with error #31
-function RoleActionMenu({ role, onEdit, onDelete }: {
+function RoleActionMenu({ role, onEdit, onDelete, canEditRole, canDeleteRole }: {
   role: Role;
   onEdit: () => void;
   onDelete: () => void;
+  canEditRole: boolean;
+  canDeleteRole: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,20 +48,24 @@ function RoleActionMenu({ role, onEdit, onDelete }: {
       </button>
       {open && (
         <div className="fixed z-50 mt-1 min-w-[140px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md" style={{ transform: 'translateX(-80%)' }}>
-          <button
-            className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => { onEdit(); close(); }}
-            disabled={role.isSystem}
-          >
-            <Pencil className="size-4" /> Edit
-          </button>
-          <button
-            className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => { onDelete(); close(); }}
-            disabled={role.isSystem}
-          >
-            <Trash2 className="size-4" /> Delete
-          </button>
+          {canEditRole && (
+            <button
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { onEdit(); close(); }}
+              disabled={role.isSystem}
+            >
+              <Pencil className="size-4" /> Edit
+            </button>
+          )}
+          {canDeleteRole && (
+            <button
+              className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { onDelete(); close(); }}
+              disabled={role.isSystem}
+            >
+              <Trash2 className="size-4" /> Delete
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -68,7 +74,14 @@ function RoleActionMenu({ role, onEdit, onDelete }: {
 
 export default function RolesTab() {
   const { data: roles = [], isLoading } = useRoles();
+  const { data: myPerms } = useMyPermissions();
   const deleteRole = useDeleteRole();
+
+  const hasPerm = (action: string) => myPerms?.some((p) => p.action === action && p.subject === 'role') ?? false;
+  const canCreateRole = hasPerm('create');
+  const canEditRole = hasPerm('update');
+  const canDeleteRole = hasPerm('delete');
+  const showActions = canEditRole || canDeleteRole;
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editRole, setEditRole] = useState<Role | null>(null);
@@ -95,9 +108,11 @@ export default function RolesTab() {
         <p className="text-sm text-muted-foreground">
           {roles.length} {roles.length === 1 ? "role" : "roles"} defined.
         </p>
-        <Button onClick={() => setCreateOpen(true)}>
-          <ShieldPlus className="size-4" /> Create Role
-        </Button>
+        {canCreateRole && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <ShieldPlus className="size-4" /> Create Role
+          </Button>
+        )}
       </div>
 
       <Table>
@@ -107,7 +122,7 @@ export default function RolesTab() {
             <TableHead>Description</TableHead>
             <TableHead className="w-24">Users</TableHead>
             <TableHead className="w-28">Permissions</TableHead>
-            <TableHead className="w-24">Actions</TableHead>
+            {showActions && <TableHead className="w-24">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -123,13 +138,15 @@ export default function RolesTab() {
               <TableCell className="text-muted-foreground">{role.description ?? "--"}</TableCell>
               <TableCell className="text-muted-foreground">{role._count?.users ?? 0}</TableCell>
               <TableCell className="text-muted-foreground">{role._count?.rolePermissions ?? 0}</TableCell>
-              <TableCell>
+              {showActions && <TableCell>
                 <RoleActionMenu
                   role={role}
                   onEdit={() => setEditRole(role)}
                   onDelete={() => setDeleteTarget(role)}
+                  canEditRole={canEditRole}
+                  canDeleteRole={canDeleteRole}
                 />
-              </TableCell>
+              </TableCell>}
             </TableRow>
           ))}
         </TableBody>
