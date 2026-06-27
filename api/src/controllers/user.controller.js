@@ -31,6 +31,7 @@ async function update(req, res, next) {
       id: parseInt(req.params.id, 10),
       ...req.body,
       organizationId: req.user.organizationId,
+      requesterId: req.user.id,
     });
     res.json(user);
   } catch (err) { next(err); }

@@ -94,7 +94,7 @@ async function invite({ email, firstName, lastName, roleId, organizationId, invi
   return user;
 }
 
-async function update({ id, firstName, lastName, roleId, isActive, organizationId }) {
+async function update({ id, firstName, lastName, roleId, isActive, organizationId, requesterId }) {
   const user = await prisma.user.findFirst({
     where: { id, organizationId },
     include: { role: true },
@@ -105,9 +105,9 @@ async function update({ id, firstName, lastName, roleId, isActive, organizationI
     throw err;
   }
 
-  // Cannot change the role of a system-role user
-  if (roleId !== undefined && user.role.isSystem && roleId !== user.roleId) {
-    const err = new Error('Cannot change the role of a system role user');
+  // ponytail: can't change your own role or deactivate yourself
+  if (requesterId === id && (roleId !== undefined || isActive !== undefined)) {
+    const err = new Error('Cannot modify your own role or status');
     err.status = 403;
     throw err;
   }
