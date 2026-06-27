@@ -60,6 +60,7 @@ async function createShareLink(req, res, next) {
       password: req.body.password,
       expiresAt: req.body.expiresAt,
       createdById: req.user.id,
+      organizationId: req.user.organizationId,
     });
     res.status(201).json(link);
   } catch (err) { next(err); }
@@ -139,6 +140,7 @@ async function emailShare(req, res, next) {
       emails: req.body.emails,
       expiresAt: req.body.expiresAt,
       createdById: req.user.id,
+      organizationId: req.user.organizationId,
     });
     res.status(201).json(result);
   } catch (err) { next(err); }

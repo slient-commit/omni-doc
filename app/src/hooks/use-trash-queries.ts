@@ -6,6 +6,7 @@ export function useTrash() {
   return useQuery({
     queryKey: ['trash'],
     queryFn: () => api.get<TrashResponse>('/trash').then((r) => r.data),
+    staleTime: 30_000,
   });
 }
 

@@ -14,6 +14,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: () => api.get<Document[]>('/documents', { params: filters }).then((r) => r.data),
+    staleTime: 30_000, // ponytail: 30s — prevents refetch storms on remount
   });
 }
 
@@ -49,8 +50,8 @@ export function useUploadZip() {
         headers: { 'Content-Type': 'multipart/form-data' },
       }).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 }
@@ -70,9 +71,9 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.delete(`/documents/${id}`).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
-      qc.refetchQueries({ queryKey: ['trash'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -82,9 +83,9 @@ export function usePermanentDeleteDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.delete(`/documents/${id}/permanent`).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
-      qc.refetchQueries({ queryKey: ['trash'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -94,9 +95,9 @@ export function useRestoreDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.post(`/documents/${id}/restore`).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
-      qc.refetchQueries({ queryKey: ['trash'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -107,8 +108,8 @@ export function useCopyDocument() {
     mutationFn: ({ id, targetFolderId }: { id: number | string; targetFolderId?: number | null }) =>
       api.post(`/documents/${id}/copy`, { targetFolderId }).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 }
@@ -119,8 +120,8 @@ export function useMoveDocument() {
     mutationFn: ({ id, folderIds }: { id: number | string; folderIds: number[] }) =>
       api.post(`/documents/${id}/move`, { folderIds }).then((r) => r.data),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ['documents'] });
-      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.invalidateQueries({ queryKey: ['documents'] });
+      qc.invalidateQueries({ queryKey: ['folders'] });
     },
   });
 }

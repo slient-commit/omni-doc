@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Files, FolderOpen, Share2, Trash2, LogOut, Cog, ChevronRight, Folder as FolderIcon } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '@/contexts/auth-context';
@@ -26,7 +27,13 @@ function FolderTreeItem({ folder, level, activeFolderId, onNavigate }: {
   onNavigate: (uuid: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { data: children = [] } = useFolders(expanded ? folder.uuid : undefined);
+  // ponytail: only fetch children when expanded — prevents N queries for collapsed nodes
+  const { data: children = [] } = useQuery({
+    queryKey: ['folders', { parentId: folder.uuid }],
+    queryFn: () => import('@/lib/api').then(m => m.default.get('/folders', { params: { parentId: folder.uuid } }).then(r => r.data)),
+    enabled: expanded,
+    staleTime: 30_000,
+  });
   const hasChildren = (folder._count?.children ?? 0) > 0;
   const isActive = activeFolderId === folder.uuid;
 

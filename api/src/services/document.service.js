@@ -211,6 +211,19 @@ async function move({ id, folderIds, organizationId, userId }) {
   }
 
   checkItemPermission(doc, userId, 'move');
+
+  // Verify all target folders belong to the same organization
+  if (folderIds.length > 0) {
+    const validCount = await prisma.folder.count({
+      where: { id: { in: folderIds }, organizationId, deletedAt: null },
+    });
+    if (validCount !== folderIds.length) {
+      const err = new Error('One or more folders not found');
+      err.status = 404;
+      throw err;
+    }
+  }
+
   await prisma.$transaction([
     prisma.documentFolder.deleteMany({ where: { documentId: doc.id } }),
     ...folderIds.map((folderId) =>
@@ -237,6 +250,18 @@ async function copyToFolder({ id, targetFolderId, organizationId, userId }) {
   checkItemPermission(doc, userId, 'copy');
 
   const resolvedTargetFolderId = targetFolderId ? await resolveFolderId(targetFolderId) : null;
+
+  // Verify target folder belongs to the same organization
+  if (resolvedTargetFolderId) {
+    const targetFolder = await prisma.folder.findFirst({
+      where: { id: resolvedTargetFolderId, organizationId, deletedAt: null },
+    });
+    if (!targetFolder) {
+      const err = new Error('Target folder not found');
+      err.status = 404;
+      throw err;
+    }
+  }
 
   // Check if copying to same location — if so, increment name
   const sourceFolderIds = doc.documentFolders.map((l) => l.folderId);

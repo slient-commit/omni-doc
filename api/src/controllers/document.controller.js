@@ -61,7 +61,7 @@ async function download(req, res, next) {
     if (req.query.preview === 'true') {
       // ponytail: inline display for preview — browser renders instead of downloading
       const mimeType = require('path').extname(originalName);
-      const mimeMap = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.txt': 'text/plain', '.html': 'text/html', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg', '.wav': 'audio/wav' };
+      const mimeMap = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.txt': 'text/plain', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg', '.wav': 'audio/wav' };
       res.setHeader('Content-Type', mimeMap[mimeType.toLowerCase()] || 'application/octet-stream');
       res.setHeader('Content-Disposition', `inline; filename="${originalName}"`);
       require('fs').createReadStream(absolutePath).pipe(res);

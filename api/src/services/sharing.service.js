@@ -109,18 +109,22 @@ async function deleteFolderInvite({ inviteId, organizationId }) {
 
 // --- Share Links ---
 
-async function createShareLink({ documentId, folderId, password, expiresAt, createdById }) {
+async function createShareLink({ documentId, folderId, password, expiresAt, createdById, organizationId }) {
   const token = generateToken();
   const data = { token, createdById };
 
   if (documentId) {
     const resolved = await resolveDocId(documentId);
     if (!resolved) { const err = new Error('Document not found'); err.status = 404; throw err; }
+    const doc = await prisma.document.findFirst({ where: { id: resolved, organizationId } });
+    if (!doc) { const err = new Error('Document not found'); err.status = 404; throw err; }
     data.documentId = resolved;
   }
   if (folderId) {
     const resolved = await resolveFolderId(folderId);
     if (!resolved) { const err = new Error('Folder not found'); err.status = 404; throw err; }
+    const folder = await prisma.folder.findFirst({ where: { id: resolved, organizationId } });
+    if (!folder) { const err = new Error('Folder not found'); err.status = 404; throw err; }
     data.folderId = resolved;
   }
 
@@ -210,7 +214,7 @@ async function accessShareLink({ token, password }) {
 }
 
 // --- Email share (public, per-recipient links, not visible in app) ---
-async function emailShare({ documentId, folderId, emails, expiresAt, createdById }) {
+async function emailShare({ documentId, folderId, emails, expiresAt, createdById, organizationId }) {
   const sender = await prisma.user.findUnique({
     where: { id: createdById },
     select: { firstName: true, lastName: true },
@@ -223,7 +227,8 @@ async function emailShare({ documentId, folderId, emails, expiresAt, createdById
   if (documentId) {
     const resolved = await resolveDocId(documentId);
     if (!resolved) { const err = new Error('Document not found'); err.status = 404; throw err; }
-    const doc = await prisma.document.findUnique({ where: { id: resolved }, select: { originalName: true } });
+    const doc = await prisma.document.findFirst({ where: { id: resolved, organizationId }, select: { originalName: true } });
+    if (!doc) { const err = new Error('Document not found'); err.status = 404; throw err; }
     itemName = doc?.originalName || 'Document';
     itemType = 'document';
 
@@ -249,7 +254,8 @@ async function emailShare({ documentId, folderId, emails, expiresAt, createdById
   if (folderId) {
     const resolved = await resolveFolderId(folderId);
     if (!resolved) { const err = new Error('Folder not found'); err.status = 404; throw err; }
-    const folder = await prisma.folder.findUnique({ where: { id: resolved }, select: { name: true } });
+    const folder = await prisma.folder.findFirst({ where: { id: resolved, organizationId }, select: { name: true } });
+    if (!folder) { const err = new Error('Folder not found'); err.status = 404; throw err; }
     itemName = folder?.name || 'Folder';
     itemType = 'folder';
 

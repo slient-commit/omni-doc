@@ -102,19 +102,26 @@ async function register({ email, password, firstName, lastName, organizationName
 }
 
 async function login({ email, password }) {
-  const user = await prisma.user.findFirst({
+  // ponytail: fetch all matching users to handle same email across orgs deterministically
+  const users = await prisma.user.findMany({
     where: { email },
     include: { role: true },
   });
 
-  if (!user) {
+  if (users.length === 0) {
     const err = new Error('Invalid email or password');
     err.status = 401;
     throw err;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
+  // Find the first user whose password matches
+  let user = null;
+  for (const u of users) {
+    const valid = await bcrypt.compare(password, u.passwordHash);
+    if (valid) { user = u; break; }
+  }
+
+  if (!user) {
     const err = new Error('Invalid email or password');
     err.status = 401;
     throw err;
@@ -206,9 +213,10 @@ async function verifyEmail({ token }) {
 }
 
 async function forgotPassword({ email }) {
-  const user = await prisma.user.findFirst({ where: { email } });
+  // ponytail: send reset to all matching users across orgs — each gets their own token
+  const users = await prisma.user.findMany({ where: { email } });
 
-  if (user) {
+  for (const user of users) {
     const token = generateToken();
     await prisma.passwordResetToken.create({
       data: {

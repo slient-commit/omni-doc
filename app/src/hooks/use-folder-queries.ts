@@ -7,6 +7,7 @@ export function useFolders(parentId?: string | number | null, sharedWithMe?: boo
     queryKey: ['folders', { parentId: parentId ?? null, sharedWithMe }],
     queryFn: () =>
       api.get<Folder[]>('/folders', { params: { parentId, sharedWithMe } }).then((r) => r.data),
+    staleTime: 30_000,
   });
 }
 
