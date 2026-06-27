@@ -43,24 +43,28 @@ export function FileExplorerContextMenu({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // ponytail: broadcast close-all before opening this one
+    document.dispatchEvent(new CustomEvent('close-all-context-menus'));
     setMenuPos({ x: e.clientX, y: e.clientY });
   }, []);
 
   const closeMenu = useCallback(() => setMenuPos(null), []);
 
   useEffect(() => {
+    // Close when another context menu opens
+    const handleCloseAll = () => closeMenu();
+    document.addEventListener('close-all-context-menus', handleCloseAll);
+    return () => document.removeEventListener('close-all-context-menus', handleCloseAll);
+  }, [closeMenu]);
+
+  useEffect(() => {
     if (!menuPos) return;
     const handleClick = () => closeMenu();
-    const handleContext = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu();
-    };
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
     document.addEventListener('click', handleClick);
-    document.addEventListener('contextmenu', handleContext);
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('click', handleClick);
-      document.removeEventListener('contextmenu', handleContext);
       document.removeEventListener('keydown', handleKey);
     };
   }, [menuPos, closeMenu]);
