@@ -23,8 +23,9 @@ export default function DocumentViewerPage() {
   const { token } = useAuth();
   const { data: doc, isLoading, isError } = useDocument(id!);
 
-  // ponytail: append JWT as query param for iframe/img loads that can't send headers
-  const downloadUrl = `/api/documents/${id}/download?token=${encodeURIComponent(token ?? '')}`;
+  const tokenParam = `token=${encodeURIComponent(token ?? '')}`;
+  const previewUrl = `/api/documents/${id}/download?preview=true&${tokenParam}`;
+  const downloadUrl = `/api/documents/${id}/download?${tokenParam}`;
 
   if (isLoading) {
     return (
@@ -72,10 +73,10 @@ export default function DocumentViewerPage() {
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30">
           {doc.mimeType?.startsWith('image/') ? (
             <div className="flex h-full items-center justify-center p-4">
-              <img src={downloadUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
+              <img src={previewUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
             </div>
           ) : (
-            <iframe src={downloadUrl} title={doc.originalName} className="h-full w-full min-h-[600px]" />
+            <iframe src={previewUrl} title={doc.originalName} className="h-full w-full min-h-[600px]" />
           )}
         </div>
       ) : (
