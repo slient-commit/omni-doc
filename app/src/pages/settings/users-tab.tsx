@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useUsers, useUpdateUser } from "@/hooks/use-user-queries";
+import { useUsers, useUpdateUser, useDeactivateUser } from "@/hooks/use-user-queries";
 import { useRoles } from "@/hooks/use-role-queries";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -13,17 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InviteUserDialog } from "@/components/dialogs/invite-user-dialog";
 import {
-  Loader2, MoreHorizontal, Shield, UserMinus, UserCheck, UserPlus, Pencil, ChevronRight,
+  Loader2, MoreHorizontal, Shield, UserMinus, UserCheck, UserPlus, Pencil, ChevronRight, Trash2,
 } from "lucide-react";
 import type { OrgUser } from "@/types/users";
 
-function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit }: {
+function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit, onDelete }: {
   user: OrgUser;
   roles: { id: number; name: string }[];
   isOwner: boolean;
   onChangeRole: (roleId: number) => void;
   onToggleActive: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -86,6 +87,12 @@ function ActionMenu({ user, roles, isOwner, onChangeRole, onToggleActive, onEdit
                 onClick={() => { onToggleActive(); close(); }}
               >
                 {user.isActive ? <><UserMinus className="size-4" /> Deactivate</> : <><UserCheck className="size-4" /> Activate</>}
+              </button>
+              <button
+                className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
+                onClick={() => { onDelete(); close(); }}
+              >
+                <Trash2 className="size-4" /> Delete
               </button>
             </>
           )}
@@ -151,8 +158,10 @@ export default function UsersTab() {
   const { data: users = [], isLoading } = useUsers();
   const { data: roles = [] } = useRoles();
   const updateUser = useUpdateUser();
+  const deactivateUser = useDeactivateUser();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editUser, setEditUser] = useState<OrgUser | null>(null);
+  const [deleteUser, setDeleteUser] = useState<OrgUser | null>(null);
 
   if (isLoading) {
     return (
@@ -204,6 +213,7 @@ export default function UsersTab() {
                     onChangeRole={(roleId) => updateUser.mutate({ id: user.id, roleId })}
                     onToggleActive={() => updateUser.mutate({ id: user.id, isActive: !user.isActive })}
                     onEdit={() => setEditUser(user)}
+                    onDelete={() => setDeleteUser(user)}
                   />
                 </TableCell>
               </TableRow>
@@ -216,6 +226,27 @@ export default function UsersTab() {
       {editUser && (
         <EditUserDialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null); }} user={editUser} />
       )}
+
+      <Dialog open={!!deleteUser} onOpenChange={(o) => { if (!o) { setDeleteUser(null); deactivateUser.reset(); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="size-4 text-destructive" /> Delete User
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deleteUser?.firstName} {deleteUser?.lastName}</strong>? This will deactivate their account.
+            </DialogDescription>
+          </DialogHeader>
+          {deactivateUser.isError && <p className="text-sm text-destructive">{deactivateUser.error?.message}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => { if (deleteUser) deactivateUser.mutate(deleteUser.id, { onSuccess: () => setDeleteUser(null) }); }} disabled={deactivateUser.isPending}>
+              {deactivateUser.isPending && <Loader2 className="size-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
