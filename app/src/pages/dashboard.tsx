@@ -108,6 +108,18 @@ export default function DashboardPage() {
     );
   }
 
+  // ponytail: redirect to root after folder is deleted (query refetches and errors)
+  const [wasDeleting, setWasDeleting] = useState(false);
+  useEffect(() => {
+    if (folderDeleteOpen) setWasDeleting(true);
+  }, [folderDeleteOpen]);
+  useEffect(() => {
+    if (wasDeleting && !folderDeleteOpen && folderError && folderId) {
+      setWasDeleting(false);
+      handleNavigateFolder(null);
+    }
+  }, [wasDeleting, folderDeleteOpen, folderError, folderId]);
+
   if (folderId && folderError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
@@ -192,22 +204,7 @@ export default function DashboardPage() {
           <EditPropertiesDialog open={folderPropsOpen} onOpenChange={setFolderPropsOpen} type="folder" item={currentFolder} />
           <ConfirmDeleteDialog
             open={folderDeleteOpen}
-            onOpenChange={(open) => {
-              if (!open && folderDeleteOpen) {
-                // ponytail: navigate to parent after folder delete dialog closes
-                const parentId = currentFolder.parentId;
-                // Small delay to let mutation complete
-                setTimeout(() => {
-                  if (parentId) {
-                    // Need parent uuid — for now go to root
-                    handleNavigateFolder(null);
-                  } else {
-                    handleNavigateFolder(null);
-                  }
-                }, 300);
-              }
-              setFolderDeleteOpen(open);
-            }}
+            onOpenChange={setFolderDeleteOpen}
             type="folder"
             id={currentFolder.uuid}
             name={currentFolder.name}
