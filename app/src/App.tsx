@@ -19,12 +19,17 @@ import RolesTab from '@/pages/settings/roles-tab';
 import DocumentViewerPage from '@/pages/document-viewer';
 import SharedLinkPage from '@/pages/shared-link';
 import LandingPage from '@/pages/landing';
+import DocsPage from '@/pages/docs';
 import NotFoundPage from '@/pages/not-found';
 
 const router = createBrowserRouter([
   {
     path: '/welcome',
     element: <LandingPage />,
+  },
+  {
+    path: '/docs',
+    element: <DocsPage />,
   },
   {
     path: '/',

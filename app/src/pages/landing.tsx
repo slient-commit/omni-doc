@@ -46,6 +46,9 @@ export default function LandingPage() {
             <span className="font-semibold">Omni Doc</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/docs" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              Docs
+            </Link>
             <a
               href="https://github.com/slient-commit/omni-doc"
               target="_blank"
@@ -70,7 +73,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-4xl px-6 py-28 text-center sm:py-36">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground">
             <Zap className="size-3.5 text-primary" />
-            Open source &amp; self-hosted
+            Source-available &amp; self-hosted
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Your documents,<br />
@@ -199,9 +202,10 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <FolderOpen className="size-4 text-primary" />
             <span className="text-sm font-medium">Omni Doc</span>
-            <span className="text-sm text-muted-foreground">&middot; Open source document management</span>
+            <span className="text-sm text-muted-foreground">&middot; Source-available document management</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/docs" className="transition-colors hover:text-foreground">Docs</Link>
             <a href="https://github.com/slient-commit/omni-doc" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
               <GithubIcon className="size-4" />
             </a>
