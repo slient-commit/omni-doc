@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
@@ -15,14 +15,15 @@ interface UploadDocumentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   folderId?: string | number | null;
+  initialFiles?: File[];
 }
 
 function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-export function UploadDocumentDialog({ open, onOpenChange, folderId }: UploadDocumentDialogProps) {
-  const [files, setFiles] = useState<File[]>([]);
+export function UploadDocumentDialog({ open, onOpenChange, folderId, initialFiles }: UploadDocumentDialogProps) {
+  const [files, setFiles] = useState<File[]>(initialFiles ?? []);
   const [documentDate, setDocumentDate] = useState(todayISO());
   const [isPrivate, setIsPrivate] = useState(false);
   const [allowEdit, setAllowEdit] = useState(true);
@@ -32,6 +33,11 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId }: UploadDoc
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadDocument = useUploadDocument();
   const [pending, setPending] = useState(0);
+
+  // ponytail: sync dropped files when dialog opens with initialFiles
+  useEffect(() => {
+    if (initialFiles?.length) setFiles(initialFiles);
+  }, [initialFiles]);
 
   const resetForm = () => {
     setFiles([]); setDocumentDate(todayISO()); setIsPrivate(false);

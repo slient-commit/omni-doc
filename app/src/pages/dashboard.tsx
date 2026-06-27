@@ -28,7 +28,10 @@ export default function DashboardPage() {
   const [bgMenuPos, setBgMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [zipOpen, setZipOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragCounter = useRef(0);
   const [folderPropsOpen, setFolderPropsOpen] = useState(false);
   const [folderDeleteOpen, setFolderDeleteOpen] = useState(false);
   const bgMenuRef = useRef<HTMLDivElement>(null);
@@ -79,6 +82,36 @@ export default function DashboardPage() {
   }, []);
 
   const closeBgMenu = useCallback(() => setBgMenuPos(null), []);
+
+  // ponytail: drag-and-drop file upload — only active when user has create:document permission
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (!canCreateDocument) return;
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes('Files')) setDragging(true);
+  }, [canCreateDocument]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
+    if (!canCreateDocument) return;
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      setDroppedFiles(files);
+      setUploadOpen(true);
+    }
+  }, [canCreateDocument]);
 
   useEffect(() => {
     if (!bgMenuPos) return;
@@ -142,8 +175,24 @@ export default function DashboardPage() {
       <FileExplorerToolbar viewMode={viewMode} onViewModeChange={setViewMode} folderId={folderId} onSearch={setSearch} />
       <FileExplorerBreadcrumb folderId={folderId} onNavigate={handleNavigateFolder} />
 
-      {/* Content area — right-click here shows background context menu */}
-      <div className="flex flex-1 flex-col" onContextMenu={handleBgContextMenu}>
+      {/* Content area — right-click context menu + drag-and-drop upload */}
+      <div
+        className="relative flex flex-1 flex-col"
+        onContextMenu={handleBgContextMenu}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drop overlay */}
+        {dragging && (
+          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5">
+            <div className="flex flex-col items-center gap-2 text-primary">
+              <Upload className="size-10 stroke-1" />
+              <p className="text-sm font-medium">Drop files to upload</p>
+            </div>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -197,7 +246,12 @@ export default function DashboardPage() {
       )}
 
       <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} parentId={folderId} />
-      <UploadDocumentDialog open={uploadOpen} onOpenChange={setUploadOpen} folderId={folderId} />
+      <UploadDocumentDialog
+        open={uploadOpen}
+        onOpenChange={(v) => { setUploadOpen(v); if (!v) setDroppedFiles([]); }}
+        folderId={folderId}
+        initialFiles={droppedFiles}
+      />
       <UploadZipDialog open={zipOpen} onOpenChange={setZipOpen} folderId={folderId} />
       {folderId && currentFolder && (
         <>
