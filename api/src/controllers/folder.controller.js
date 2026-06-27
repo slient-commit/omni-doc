@@ -64,6 +64,7 @@ async function softDelete(req, res, next) {
     const result = await folderService.softDelete({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -74,6 +75,7 @@ async function hardDelete(req, res, next) {
     const result = await folderService.hardDelete({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -84,6 +86,7 @@ async function restore(req, res, next) {
     const result = await folderService.restore({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -95,6 +98,7 @@ async function move(req, res, next) {
       id: req.params.id,
       targetParentId: req.body.targetParentId || null,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -107,6 +111,7 @@ async function copy(req, res, next) {
       targetParentId: req.body.targetParentId || null,
       organizationId: req.user.organizationId,
       createdById: req.user.id,
+      userId: req.user.id,
     });
     res.status(201).json(result);
   } catch (err) { next(err); }

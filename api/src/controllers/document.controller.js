@@ -95,6 +95,7 @@ async function hardDelete(req, res, next) {
     const result = await documentService.hardDelete({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -105,6 +106,7 @@ async function restore(req, res, next) {
     const result = await documentService.restore({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -116,6 +118,7 @@ async function move(req, res, next) {
       id: req.params.id,
       folderIds: req.body.folderIds,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }
@@ -127,6 +130,7 @@ async function copyToFolder(req, res, next) {
       id: req.params.id,
       targetFolderId: req.body.targetFolderId || null,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.status(201).json(result);
   } catch (err) { next(err); }

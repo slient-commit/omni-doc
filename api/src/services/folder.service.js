@@ -112,7 +112,7 @@ async function getAncestors(id) {
 
 async function rename({ id, name, isPrivate, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...folderVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -157,9 +157,9 @@ async function getDescendantFolderIds(folderId) {
   return ids;
 }
 
-async function softDelete({ id, organizationId }) {
+async function softDelete({ id, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...folderVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -188,9 +188,9 @@ async function softDelete({ id, organizationId }) {
   return { message: 'Folder moved to trash' };
 }
 
-async function hardDelete({ id, organizationId }) {
+async function hardDelete({ id, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId },
+    where: { ...idOrUuid(id), organizationId, OR: [{ isPrivate: false }, { createdById: userId }] },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -211,9 +211,9 @@ async function hardDelete({ id, organizationId }) {
   return { message: 'Folder permanently deleted' };
 }
 
-async function restore({ id, organizationId }) {
+async function restore({ id, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null } },
+    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null }, OR: [{ isPrivate: false }, { createdById: userId }] },
   });
   if (!folder) {
     const err = new Error('Folder not found in trash');
@@ -241,9 +241,9 @@ async function restore({ id, organizationId }) {
   return { message: 'Folder restored' };
 }
 
-async function move({ id, targetParentId, organizationId }) {
+async function move({ id, targetParentId, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...folderVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!folder) {
     const err = new Error('Folder not found');
@@ -265,9 +265,9 @@ async function move({ id, targetParentId, organizationId }) {
   return { message: 'Folder moved' };
 }
 
-async function copy({ id, targetParentId, organizationId, createdById }) {
+async function copy({ id, targetParentId, organizationId, createdById, userId }) {
   const source = await prisma.folder.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...folderVisibilityFilter({ id: userId || createdById, organizationId }) },
     include: { organization: { select: { storagePath: true } } },
   });
   if (!source) {

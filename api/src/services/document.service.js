@@ -177,9 +177,9 @@ async function softDelete({ id, organizationId, userId }) {
   return { message: 'Document moved to trash' };
 }
 
-async function hardDelete({ id, organizationId }) {
+async function hardDelete({ id, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId },
+    where: { ...idOrUuid(id), organizationId, OR: [{ isPrivate: false }, { createdById: userId }] },
     include: { organization: { select: { storagePath: true } } },
   });
   if (!doc) {
@@ -202,9 +202,9 @@ async function hardDelete({ id, organizationId }) {
   return { message: 'Document permanently deleted' };
 }
 
-async function restore({ id, organizationId }) {
+async function restore({ id, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null } },
+    where: { ...idOrUuid(id), organizationId, deletedAt: { not: null }, OR: [{ isPrivate: false }, { createdById: userId }] },
   });
   if (!doc) {
     const err = new Error('Document not found in trash');
@@ -215,9 +215,9 @@ async function restore({ id, organizationId }) {
   return { message: 'Document restored' };
 }
 
-async function move({ id, folderIds, organizationId }) {
+async function move({ id, folderIds, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!doc) {
     const err = new Error('Document not found');
@@ -236,9 +236,9 @@ async function move({ id, folderIds, organizationId }) {
   return { message: 'Document moved' };
 }
 
-async function copyToFolder({ id, targetFolderId, organizationId }) {
+async function copyToFolder({ id, targetFolderId, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
     include: {
       organization: { select: { storagePath: true } },
       documentFolders: { select: { folderId: true } },
