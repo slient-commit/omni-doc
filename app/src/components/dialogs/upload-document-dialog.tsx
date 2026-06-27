@@ -34,10 +34,10 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId, initialFile
   const uploadDocument = useUploadDocument();
   const [pending, setPending] = useState(0);
 
-  // ponytail: sync dropped files when dialog opens with initialFiles
+  // ponytail: sync dropped files when dialog opens
   useEffect(() => {
-    if (initialFiles?.length) setFiles(initialFiles);
-  }, [initialFiles]);
+    if (open && initialFiles?.length) setFiles(initialFiles);
+  }, [open, initialFiles]);
 
   const resetForm = () => {
     setFiles([]); setDocumentDate(todayISO()); setIsPrivate(false);
@@ -87,7 +87,11 @@ export function UploadDocumentDialog({ open, onOpenChange, folderId, initialFile
             <div className="grid gap-2">
               <Label htmlFor="doc-file">Files</Label>
               <Input ref={fileInputRef} id="doc-file" type="file" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
-              {files.length > 1 && <p className="text-xs text-muted-foreground">{files.length} files selected</p>}
+              {files.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {files.length === 1 ? files[0].name : `${files.length} files selected`}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
