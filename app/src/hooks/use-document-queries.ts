@@ -14,7 +14,6 @@ export function useDocuments(filters: DocumentFilters = {}) {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: () => api.get<Document[]>('/documents', { params: filters }).then((r) => r.data),
-    staleTime: 30_000, // ponytail: 30s — prevents refetch storms on remount
   });
 }
 

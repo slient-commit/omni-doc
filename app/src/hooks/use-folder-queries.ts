@@ -2,12 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Folder, BreadcrumbItem } from '@/types/documents';
 
+// ponytail: parentId=undefined disables the query (sidebar collapsed nodes)
+// parentId=null fetches root folders
 export function useFolders(parentId?: string | number | null, sharedWithMe?: boolean) {
   return useQuery({
     queryKey: ['folders', { parentId: parentId ?? null, sharedWithMe }],
     queryFn: () =>
       api.get<Folder[]>('/folders', { params: { parentId, sharedWithMe } }).then((r) => r.data),
-    staleTime: 30_000,
+    enabled: parentId !== undefined,
   });
 }
 
