@@ -1,14 +1,7 @@
 import { Files, FolderOpen, Share2, Trash2, LogOut, Cog } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +22,7 @@ const NAV_ITEMS = [
   { label: 'Trash', icon: Trash2, href: '/trash' },
 ];
 
+// ponytail: no base-ui render prop, no DropdownMenu — plain buttons + navigate to avoid error #31
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -54,7 +48,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={location.pathname === item.href}
-                    render={<Link to={item.href} />}
+                    onClick={() => navigate(item.href)}
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
@@ -73,32 +67,29 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent" />
-            }
+      <SidebarFooter className="border-t p-2 space-y-1">
+        <button
+          className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors duration-150 hover:bg-accent"
+          onClick={() => navigate('/settings')}
+        >
+          <Cog className="h-4 w-4" />
+          <span>Settings</span>
+        </button>
+        <div className="flex items-center gap-2 rounded-md px-2 py-2">
+          <Avatar className="h-7 w-7">
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          </Avatar>
+          <span className="flex-1 truncate text-sm">
+            {user?.firstName} {user?.lastName}
+          </span>
+          <button
+            className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-accent"
+            onClick={logout}
+            title="Sign out"
           >
-            <Avatar className="h-7 w-7">
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="truncate">
-              {user?.firstName} {user?.lastName}
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-48">
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Cog className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
