@@ -11,6 +11,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+    volumes:
+      - omni-doc-uploads:/app/uploads
     networks:
       - dokploy-network
 
@@ -28,6 +30,9 @@ services:
       - "8080:80"
     networks:
       - dokploy-network
+
+volumes:
+  omni-doc-uploads:
 
 networks:
   # Created by Dokploy on the host; its Traefik proxy routes to containers on it.

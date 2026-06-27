@@ -9,6 +9,7 @@ interface FileExplorerGridProps {
   onFolderClick: (uuid: string) => void;
   onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
+  currentFolderId?: string | null;
 }
 
 export function FileExplorerGrid({
@@ -17,6 +18,7 @@ export function FileExplorerGrid({
   onFolderClick,
   onDocumentClick,
   isTrash = false,
+  currentFolderId,
 }: FileExplorerGridProps) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -30,6 +32,7 @@ export function FileExplorerGrid({
             type="folder"
             isTrash={isTrash}
             onOpen={() => onFolderClick(folder.uuid)}
+            currentFolderId={currentFolderId}
           >
             <button
               type="button"
@@ -55,6 +58,7 @@ export function FileExplorerGrid({
           type="document"
           isTrash={isTrash}
           onOpen={() => onDocumentClick(doc.uuid)}
+          currentFolderId={currentFolderId}
         >
           <button
             type="button"

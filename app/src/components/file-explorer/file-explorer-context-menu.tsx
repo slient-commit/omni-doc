@@ -1,7 +1,8 @@
 import { type ReactNode, useState, useCallback, useRef, useEffect } from 'react';
 import { FolderOpen, Pencil, Download, Share2, Trash2, ArchiveRestore, Settings2, FolderInput, Copy } from 'lucide-react';
 import { useDeleteFolder, useRestoreFolder } from '@/hooks/use-folder-queries';
-import { useDeleteDocument, useRestoreDocument } from '@/hooks/use-document-queries';
+import { useDeleteDocument, useRestoreDocument, useCopyDocument } from '@/hooks/use-document-queries';
+import { useCopyFolder } from '@/hooks/use-folder-queries';
 import { RenameDialog } from '@/components/dialogs/rename-dialog';
 import { ConfirmDeleteDialog } from '@/components/dialogs/confirm-delete-dialog';
 import { ShareDialog } from '@/components/dialogs/share-dialog';
@@ -16,12 +17,11 @@ interface FileExplorerContextMenuProps {
   type: 'folder' | 'document';
   isTrash?: boolean;
   onOpen?: () => void;
+  currentFolderId?: string | null;
 }
 
-// ponytail: native onContextMenu + absolute-positioned menu div
-// avoids base-ui ContextMenu component which breaks in various layouts
 export function FileExplorerContextMenu({
-  children, item, type, isTrash = false, onOpen,
+  children, item, type, isTrash = false, onOpen, currentFolderId,
 }: FileExplorerContextMenuProps) {
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -29,7 +29,7 @@ export function FileExplorerContextMenu({
   const [shareOpen, setShareOpen] = useState(false);
   const [propsOpen, setPropsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [copyOpen, setCopyOpen] = useState(false);
+  const [folderCopyOpen, setFolderCopyOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { token } = useAuth();
 
@@ -37,6 +37,8 @@ export function FileExplorerContextMenu({
   const deleteDocument = useDeleteDocument();
   const restoreFolder = useRestoreFolder();
   const restoreDocument = useRestoreDocument();
+  const copyDocument = useCopyDocument();
+  const copyFolder = useCopyFolder();
 
   const itemName = type === 'folder' ? (item as Folder).name : (item as Document).originalName;
   const uuid = item.uuid;
@@ -49,7 +51,6 @@ export function FileExplorerContextMenu({
 
   const closeMenu = useCallback(() => setMenuPos(null), []);
 
-  // Close on any click, right-click elsewhere, or escape
   useEffect(() => {
     if (!menuPos) return;
     const handleClick = () => closeMenu();
@@ -72,16 +73,22 @@ export function FileExplorerContextMenu({
       <button
         type="button"
         className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${destructive ? 'text-destructive hover:text-destructive' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          closeMenu();
-          onClick();
-        }}
+        onClick={(e) => { e.stopPropagation(); closeMenu(); onClick(); }}
       >
         {icon}
         {label}
       </button>
     );
+  }
+
+  function handleCopy() {
+    if (type === 'document') {
+      // ponytail: in-place copy with incremented name, no dialog needed
+      copyDocument.mutate(uuid);
+    } else {
+      // folder copy needs a destination picker
+      setFolderCopyOpen(true);
+    }
   }
 
   return (
@@ -116,7 +123,7 @@ export function FileExplorerContextMenu({
                 () => window.open(`/api/documents/${uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank'),
               )}
               {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true))}
-              {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true))}
+              {menuItem(<Copy className="size-4" />, 'Copy', handleCopy)}
               {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
               {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true))}
               <div className="my-1 h-px bg-border" />
@@ -133,8 +140,8 @@ export function FileExplorerContextMenu({
       <ConfirmDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} type={type} id={uuid} name={itemName} permanent />
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} type={type} id={uuid} />
       <EditPropertiesDialog open={propsOpen} onOpenChange={setPropsOpen} type={type} item={item} />
-      <MoveDialog open={moveOpen} onOpenChange={setMoveOpen} mode="move" type={type} itemId={uuid} itemName={itemName} />
-      <MoveDialog open={copyOpen} onOpenChange={setCopyOpen} mode="copy" type={type} itemId={uuid} itemName={itemName} />
+      <MoveDialog open={moveOpen} onOpenChange={setMoveOpen} mode="move" type={type} itemId={uuid} itemName={itemName} currentFolderId={currentFolderId} />
+      <MoveDialog open={folderCopyOpen} onOpenChange={setFolderCopyOpen} mode="copy" type={type} itemId={uuid} itemName={itemName} />
     </>
   );
 }

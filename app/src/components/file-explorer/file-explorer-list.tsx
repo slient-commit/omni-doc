@@ -10,11 +10,11 @@ interface FileExplorerListProps {
   onFolderClick: (uuid: string) => void;
   onDocumentClick: (uuid: string) => void;
   isTrash?: boolean;
+  currentFolderId?: string | null;
 }
 
-// ponytail: context menu wrapper is now a plain div with onContextMenu, no table DOM issues
 export function FileExplorerList({
-  folders, documents, onFolderClick, onDocumentClick, isTrash = false,
+  folders, documents, onFolderClick, onDocumentClick, isTrash = false, currentFolderId,
 }: FileExplorerListProps) {
   return (
     <Table>
@@ -36,6 +36,7 @@ export function FileExplorerList({
               type="folder"
               isTrash={isTrash}
               onOpen={() => onFolderClick(folder.uuid)}
+              currentFolderId={currentFolderId}
             >
               <TableRow className="cursor-pointer" onClick={() => onFolderClick(folder.uuid)}>
                 <TableCell>
@@ -61,6 +62,7 @@ export function FileExplorerList({
             type="document"
             isTrash={isTrash}
             onOpen={() => onDocumentClick(doc.uuid)}
+            currentFolderId={currentFolderId}
           >
             <TableRow className="cursor-pointer" onClick={() => onDocumentClick(doc.uuid)}>
               <TableCell>

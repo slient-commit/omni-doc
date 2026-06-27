@@ -83,6 +83,7 @@ export default function DashboardPage() {
           documents={filteredDocuments}
           onFolderClick={handleNavigateFolder}
           onDocumentClick={handleDocumentClick}
+          currentFolderId={folderId}
         />
       ) : (
         <FileExplorerList
@@ -90,6 +91,7 @@ export default function DashboardPage() {
           documents={filteredDocuments}
           onFolderClick={handleNavigateFolder}
           onDocumentClick={handleDocumentClick}
+          currentFolderId={folderId}
         />
       )}
     </div>

@@ -213,10 +213,14 @@ async function move({ id, folderIds, organizationId }) {
   return { message: 'Document moved' };
 }
 
-async function copyToFolder({ id, folderId, organizationId }) {
+// ponytail: in-place copy — duplicates file in same folder(s) with incremented name
+async function copyToFolder({ id, organizationId }) {
   const doc = await prisma.document.findFirst({
     where: { ...idOrUuid(id), organizationId, deletedAt: null },
-    include: { organization: { select: { storagePath: true } } },
+    include: {
+      organization: { select: { storagePath: true } },
+      documentFolders: { select: { folderId: true } },
+    },
   });
   if (!doc) {
     const err = new Error('Document not found');
@@ -224,29 +228,33 @@ async function copyToFolder({ id, folderId, organizationId }) {
     throw err;
   }
 
-  // Clone the physical file with a new UUID filename
+  // Increment name: "file.pdf" -> "file (1).pdf", "file (1).pdf" -> "file (2).pdf"
+  const ext = path.extname(doc.originalName);
+  const base = path.basename(doc.originalName, ext);
+  const match = base.match(/^(.+?)\s*\((\d+)\)$/);
+  const coreName = match ? match[1] : base;
+  const nextNum = match ? parseInt(match[2], 10) + 1 : 1;
+  const newOriginalName = `${coreName} (${nextNum})${ext}`;
+
+  // Clone physical file
   const crypto = require('crypto');
-  const ext = path.extname(doc.storedFilename);
-  const newFilename = `${crypto.randomUUID()}${ext}`;
+  const newStoredFilename = `${crypto.randomUUID()}${path.extname(doc.storedFilename)}`;
   const orgDir = path.join(config.storagePath, doc.organization.storagePath);
-  const srcPath = path.join(orgDir, doc.filePath);
-  const destPath = path.join(orgDir, newFilename);
 
   try {
-    fs.copyFileSync(srcPath, destPath);
+    fs.copyFileSync(path.join(orgDir, doc.filePath), path.join(orgDir, newStoredFilename));
   } catch (copyErr) {
-    console.error('[document] Copy failed:', { srcPath, destPath, error: copyErr.message });
+    console.error('[document] Copy failed:', copyErr.message);
     const e = new Error(`Failed to copy file: ${copyErr.message}`);
     e.status = 500;
     throw e;
   }
 
-  // Create a new independent document record
   const copy = await prisma.document.create({
     data: {
-      originalName: doc.originalName,
-      storedFilename: newFilename,
-      filePath: newFilename,
+      originalName: newOriginalName,
+      storedFilename: newStoredFilename,
+      filePath: newStoredFilename,
       mimeType: doc.mimeType,
       fileSize: doc.fileSize,
       documentDate: doc.documentDate,
@@ -258,10 +266,10 @@ async function copyToFolder({ id, folderId, organizationId }) {
     },
   });
 
-  // Link the copy to the target folder
-  if (folderId) {
+  // Link copy to same folders as source
+  for (const link of doc.documentFolders) {
     await prisma.documentFolder.create({
-      data: { documentId: copy.id, folderId },
+      data: { documentId: copy.id, folderId: link.folderId },
     });
   }
 

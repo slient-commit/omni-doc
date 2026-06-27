@@ -15,19 +15,24 @@ interface MoveDialogProps {
   type: 'document' | 'folder';
   itemId: number | string;
   itemName: string;
+  currentFolderId?: string | null;
 }
 
-export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName }: MoveDialogProps) {
+export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName, currentFolderId }: MoveDialogProps) {
   const [currentParent, setCurrentParent] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [selectedFolderUuid, setSelectedFolderUuid] = useState<string | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{ id: string | null; name: string }[]>([]);
 
   const { data: allFolders = [], isLoading } = useFolders(currentParent);
-  // Hide source folder from list when moving/copying a folder
-  const folders = type === 'folder'
-    ? allFolders.filter((f) => f.uuid !== itemId && String(f.id) !== String(itemId))
-    : allFolders;
+  // Hide source folder (can't move folder into itself) and current folder (already there)
+  const folders = allFolders.filter((f) => {
+    if (type === 'folder' && (f.uuid === itemId || String(f.id) === String(itemId))) return false;
+    if (mode === 'move' && currentParent === null && currentFolderId && f.uuid === currentFolderId) return false;
+    return true;
+  });
+  // Show "Root" option when item is inside a folder and we're at the top level of the picker
+  const showRootOption = mode === 'move' && currentParent === null && !!currentFolderId;
   const moveDocument = useMoveDocument();
   const copyDocument = useCopyDocument();
   const moveFolder = useMoveFolder();
@@ -117,12 +122,22 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName }:
             <div className="flex items-center justify-center py-8">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-          ) : folders.length === 0 ? (
+          ) : (!showRootOption && folders.length === 0) ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               {currentParent ? 'No subfolders' : 'No folders yet'}
             </p>
           ) : (
-            folders.map((folder) => (
+            <>
+            {showRootOption && (
+              <button
+                className={`flex w-full cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm transition-colors hover:bg-muted/50 ${selectedFolderId === null && selectedFolderUuid === null ? 'bg-accent' : ''}`}
+                onClick={() => { setSelectedFolderId(null); setSelectedFolderUuid(null); }}
+              >
+                <Home className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 text-left font-medium">Root</span>
+              </button>
+            )}
+            {folders.map((folder) => (
               <button
                 key={folder.id}
                 className={`flex w-full cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm transition-colors last:border-b-0 hover:bg-muted/50 ${selectedFolderId === folder.id ? 'bg-accent' : ''}`}
@@ -133,7 +148,8 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName }:
                 <span className="flex-1 truncate text-left">{folder.name}</span>
                 <ChevronRight className="size-3 text-muted-foreground" />
               </button>
-            ))
+            ))}
+            </>
           )}
         </div>
 
