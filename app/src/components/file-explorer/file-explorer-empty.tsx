@@ -11,7 +11,7 @@ export function FileExplorerEmpty({
   action,
 }: FileExplorerEmptyProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-16 text-muted-foreground">
+    <div className="flex w-full flex-col items-center justify-center gap-4 py-16 text-muted-foreground">
       <FolderOpen className="size-12 stroke-1" />
       <p className="text-sm">{message}</p>
       {action && <div>{action}</div>}

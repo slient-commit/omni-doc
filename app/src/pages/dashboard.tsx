@@ -149,7 +149,7 @@ export default function DashboardPage() {
             <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         ) : isEmpty ? (
-          <div className="flex flex-1">
+          <div className="flex flex-1 items-center justify-center">
             <FileExplorerEmpty
               message={search ? "No items match your search." : "Right-click for options, or use the toolbar above."}
             />
