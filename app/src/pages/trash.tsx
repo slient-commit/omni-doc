@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 import { useTrash, useEmptyTrash } from "@/hooks/use-trash-queries";
 import { FileExplorerGrid } from "@/components/file-explorer/file-explorer-grid";
 import { FileExplorerList } from "@/components/file-explorer/file-explorer-list";
@@ -32,6 +34,12 @@ export default function TrashPage() {
 
   const { data, isLoading } = useTrash();
   const emptyTrash = useEmptyTrash();
+  const { data: apiInfo } = useQuery({
+    queryKey: ['api-info'],
+    queryFn: () => api.get<{ trashRetentionDays: number }>('/').then((r) => r.data),
+    staleTime: Infinity,
+  });
+  const retentionDays = apiInfo?.trashRetentionDays ?? 30;
 
   const folders = data?.folders ?? [];
   const documents = data?.documents ?? [];
@@ -107,7 +115,7 @@ export default function TrashPage() {
         <div>
           <h1 className="text-lg font-semibold">Trash</h1>
           <p className="text-sm text-muted-foreground">
-            Items in trash will be permanently deleted after 30 days.
+            Items in trash will be permanently deleted after {retentionDays} days.
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const config = require('../config');
 const { authenticate } = require('../middleware/auth');
 
 const healthRoutes = require('./health.routes');
@@ -21,7 +22,7 @@ router.use('/auth', authRoutes);
 router.use('/shared', publicShareRoutes);
 
 router.get('/', (req, res) => {
-  res.json({ message: 'Omni Doc API', version: '1.0.0' });
+  res.json({ message: 'Omni Doc API', version: '1.0.0', trashRetentionDays: config.trashRetentionDays });
 });
 
 // Authenticated routes
