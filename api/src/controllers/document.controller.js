@@ -61,7 +61,7 @@ async function download(req, res, next) {
 async function update(req, res, next) {
   try {
     const doc = await documentService.update({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       ...req.body,
       organizationId: req.user.organizationId,
     });
@@ -72,7 +72,7 @@ async function update(req, res, next) {
 async function softDelete(req, res, next) {
   try {
     const result = await documentService.softDelete({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);
@@ -82,7 +82,7 @@ async function softDelete(req, res, next) {
 async function hardDelete(req, res, next) {
   try {
     const result = await documentService.hardDelete({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);
@@ -92,7 +92,7 @@ async function hardDelete(req, res, next) {
 async function restore(req, res, next) {
   try {
     const result = await documentService.restore({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       organizationId: req.user.organizationId,
     });
     res.json(result);
@@ -102,7 +102,7 @@ async function restore(req, res, next) {
 async function move(req, res, next) {
   try {
     const result = await documentService.move({
-      id: parseInt(req.params.id, 10),
+      id: req.params.id,
       folderIds: req.body.folderIds,
       organizationId: req.user.organizationId,
     });
