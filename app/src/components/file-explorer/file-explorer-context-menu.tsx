@@ -30,7 +30,7 @@ export function FileExplorerContextMenu({
   const [moveOpen, setMoveOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { token } = useAuth();
+  const { token, user: currentUser } = useAuth();
 
   const deleteFolder = useDeleteFolder();
   const deleteDocument = useDeleteDocument();
@@ -69,12 +69,21 @@ export function FileExplorerContextMenu({
     };
   }, [menuPos, closeMenu]);
 
-  function menuItem(icon: ReactNode, label: string, onClick: () => void, destructive = false) {
+  const isOwner = item.createdById === currentUser?.id;
+  // ponytail: owner always has full control; non-owners check per-item flags
+  const canEdit = isOwner || item.allowEdit;
+  const canDelete = isOwner || item.allowDelete;
+  const canMove = isOwner || item.allowMove;
+  const canCopy = isOwner || item.allowCopy;
+
+  function menuItem(icon: ReactNode, label: string, onClick: () => void, options?: { destructive?: boolean; disabled?: boolean }) {
+    const { destructive = false, disabled = false } = options ?? {};
     return (
       <button
         type="button"
-        className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${destructive ? 'text-destructive hover:text-destructive' : ''}`}
-        onClick={(e) => { e.stopPropagation(); closeMenu(); onClick(); }}
+        disabled={disabled}
+        className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-accent'} ${destructive ? 'text-destructive hover:text-destructive' : ''}`}
+        onClick={(e) => { e.stopPropagation(); if (!disabled) { closeMenu(); onClick(); } }}
       >
         {icon}
         {label}
@@ -104,26 +113,26 @@ export function FileExplorerContextMenu({
                 else restoreDocument.mutate(uuid);
               })}
               <div className="my-1 h-px bg-border" />
-              {menuItem(<Trash2 className="size-4" />, 'Delete Permanently', () => setDeleteOpen(true), true)}
+              {menuItem(<Trash2 className="size-4" />, 'Delete Permanently', () => setDeleteOpen(true), { destructive: true })}
             </>
           ) : (
             <>
               {menuItem(<FolderOpen className="size-4" />, 'Open', () => onOpen?.())}
               <div className="my-1 h-px bg-border" />
-              {menuItem(<Pencil className="size-4" />, 'Rename', () => setRenameOpen(true))}
+              {menuItem(<Pencil className="size-4" />, 'Rename', () => setRenameOpen(true), { disabled: !canEdit })}
               {type === 'document' && menuItem(
                 <Download className="size-4" />, 'Download',
                 () => window.open(`/api/documents/${uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank'),
               )}
-              {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true))}
-              {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true))}
+              {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true), { disabled: !canMove })}
+              {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true), { disabled: !canCopy })}
               {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
-              {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true))}
+              {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true), { disabled: !canEdit })}
               <div className="my-1 h-px bg-border" />
               {menuItem(<Trash2 className="size-4" />, 'Delete', () => {
                 if (type === 'folder') deleteFolder.mutate(uuid);
                 else deleteDocument.mutate(uuid);
-              }, true)}
+              }, { destructive: true, disabled: !canDelete })}
             </>
           )}
         </div>

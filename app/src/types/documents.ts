@@ -5,6 +5,10 @@ export interface Folder {
   parentId: number | null;
   createdById: number;
   isPrivate: boolean;
+  allowEdit: boolean;
+  allowDelete: boolean;
+  allowMove: boolean;
+  allowCopy: boolean;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -25,6 +29,10 @@ export interface Document {
   categoryId: number | null;
   createdById: number;
   isPrivate: boolean;
+  allowEdit: boolean;
+  allowDelete: boolean;
+  allowMove: boolean;
+  allowCopy: boolean;
   metadata: Record<string, unknown> | null;
   deletedAt: string | null;
   createdAt: string;

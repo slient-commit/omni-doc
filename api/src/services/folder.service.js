@@ -2,6 +2,7 @@
 
 const prisma = require('../lib/prisma');
 const { folderVisibilityFilter, sharedWithMeFolderFilter } = require('../lib/visibility');
+const { checkItemPermission } = require('../lib/authorize');
 
 // ponytail: accepts numeric id or string uuid
 function idOrUuid(identifier) {
@@ -110,7 +111,7 @@ async function getAncestors(id) {
   return ancestors;
 }
 
-async function rename({ id, name, isPrivate, organizationId, userId }) {
+async function rename({ id, name, isPrivate, allowEdit, allowDelete, allowMove, allowCopy, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
     where: { ...idOrUuid(id), ...folderVisibilityFilter({ id: userId, organizationId }) },
   });
@@ -119,13 +120,24 @@ async function rename({ id, name, isPrivate, organizationId, userId }) {
     err.status = 404;
     throw err;
   }
+  checkItemPermission(folder, userId, 'edit');
+
+  const data = {};
+  if (name !== undefined) data.name = name;
+
+  // Owner-only fields
+  if (folder.createdById === userId) {
+    if (allowEdit !== undefined) data.allowEdit = allowEdit;
+    if (allowDelete !== undefined) data.allowDelete = allowDelete;
+    if (allowMove !== undefined) data.allowMove = allowMove;
+    if (allowCopy !== undefined) data.allowCopy = allowCopy;
+  }
+
   if (isPrivate !== undefined && folder.createdById !== userId) {
     const err = new Error('Only the owner can change privacy');
     err.status = 403;
     throw err;
   }
-  const data = {};
-  if (name !== undefined) data.name = name;
   if (isPrivate !== undefined) {
     data.isPrivate = isPrivate;
     // Cascade privacy to all descendant folders and their documents
@@ -166,6 +178,7 @@ async function softDelete({ id, organizationId, userId }) {
     err.status = 404;
     throw err;
   }
+  checkItemPermission(folder, userId, 'delete');
 
   const descendantIds = await getDescendantFolderIds(folder.id);
   const allFolderIds = [folder.id, ...descendantIds];
@@ -250,6 +263,7 @@ async function move({ id, targetParentId, organizationId, userId }) {
     err.status = 404;
     throw err;
   }
+  checkItemPermission(folder, userId, 'move');
   // Prevent moving a folder into itself or its descendants
   if (targetParentId) {
     const descendants = await getDescendantFolderIds(folder.id);
@@ -275,6 +289,7 @@ async function copy({ id, targetParentId, organizationId, createdById, userId })
     err.status = 404;
     throw err;
   }
+  checkItemPermission(source, userId || createdById, 'copy');
   const newParentId = await resolveId(targetParentId);
 
   // ponytail: deep copy — recursively copies folder, subfolders, and documents (with physical file clones)

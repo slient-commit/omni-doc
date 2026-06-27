@@ -172,6 +172,10 @@ model Document {
   organizationId Int
   createdById    Int
   isPrivate      Boolean   @default(false)  // only owner can see/edit
+  allowEdit      Boolean   @default(true)   // non-owners can edit
+  allowDelete    Boolean   @default(true)   // non-owners can delete
+  allowMove      Boolean   @default(true)   // non-owners can move
+  allowCopy      Boolean   @default(true)   // non-owners can copy
   metadata       Json?                      // flexible key-value data
   deletedAt      DateTime?
   createdAt      DateTime  @default(now())
@@ -200,6 +204,10 @@ model Folder {
   organizationId Int
   createdById    Int
   isPrivate      Boolean   @default(false) // only owner can see/edit
+  allowEdit      Boolean   @default(true)   // non-owners can edit
+  allowDelete    Boolean   @default(true)   // non-owners can delete
+  allowMove      Boolean   @default(true)   // non-owners can move
+  allowCopy      Boolean   @default(true)   // non-owners can copy
   deletedAt      DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

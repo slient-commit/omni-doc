@@ -5,6 +5,7 @@ const path = require('path');
 const prisma = require('../lib/prisma');
 const config = require('../config');
 const { documentVisibilityFilter, sharedWithMeDocumentFilter } = require('../lib/visibility');
+const { checkItemPermission } = require('../lib/authorize');
 
 // ponytail: resolve folder uuid to numeric id for FK
 async function resolveFolderId(identifier) {
@@ -137,7 +138,7 @@ async function getDownloadInfo({ id, userId, organizationId }) {
   };
 }
 
-async function update({ id, originalName, categoryId, documentDate, metadata, isPrivate, organizationId, userId }) {
+async function update({ id, originalName, categoryId, documentDate, metadata, isPrivate, allowEdit, allowDelete, allowMove, allowCopy, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
     where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
   });
@@ -147,19 +148,22 @@ async function update({ id, originalName, categoryId, documentDate, metadata, is
     throw err;
   }
 
-  // Only the owner can toggle isPrivate
-  if (isPrivate !== undefined && doc.createdById !== userId) {
-    const err = new Error('Only the owner can change privacy');
-    err.status = 403;
-    throw err;
-  }
+  checkItemPermission(doc, userId, 'edit');
 
   const data = {};
   if (originalName !== undefined) data.originalName = originalName;
   if (categoryId !== undefined) data.categoryId = categoryId ? parseInt(categoryId, 10) : null;
   if (documentDate !== undefined) data.documentDate = new Date(documentDate);
   if (metadata !== undefined) data.metadata = metadata;
-  if (isPrivate !== undefined) data.isPrivate = isPrivate;
+
+  // Owner-only fields
+  if (doc.createdById === userId) {
+    if (isPrivate !== undefined) data.isPrivate = isPrivate;
+    if (allowEdit !== undefined) data.allowEdit = allowEdit;
+    if (allowDelete !== undefined) data.allowDelete = allowDelete;
+    if (allowMove !== undefined) data.allowMove = allowMove;
+    if (allowCopy !== undefined) data.allowCopy = allowCopy;
+  }
 
   return prisma.document.update({ where: { id: doc.id }, data });
 }
@@ -173,6 +177,7 @@ async function softDelete({ id, organizationId, userId }) {
     err.status = 404;
     throw err;
   }
+  checkItemPermission(doc, userId, 'delete');
   await prisma.document.update({ where: { id: doc.id }, data: { deletedAt: new Date() } });
   return { message: 'Document moved to trash' };
 }
@@ -225,7 +230,7 @@ async function move({ id, folderIds, organizationId, userId }) {
     throw err;
   }
 
-  // ponytail: files stay flat in org root — move only changes the virtual folder link
+  checkItemPermission(doc, userId, 'move');
   await prisma.$transaction([
     prisma.documentFolder.deleteMany({ where: { documentId: doc.id } }),
     ...folderIds.map((folderId) =>
@@ -249,6 +254,7 @@ async function copyToFolder({ id, targetFolderId, organizationId, userId }) {
     err.status = 404;
     throw err;
   }
+  checkItemPermission(doc, userId, 'copy');
 
   const resolvedTargetFolderId = targetFolderId ? await resolveFolderId(targetFolderId) : null;
 

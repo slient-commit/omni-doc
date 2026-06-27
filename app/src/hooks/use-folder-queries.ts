@@ -40,7 +40,7 @@ export function useCreateFolder() {
 export function useRenameFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: number | string; name?: string; isPrivate?: boolean }) =>
+    mutationFn: ({ id, ...data }: { id: number | string; name?: string; isPrivate?: boolean; allowEdit?: boolean; allowDelete?: boolean; allowMove?: boolean; allowCopy?: boolean }) =>
       api.patch<Folder>(`/folders/${id}`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });

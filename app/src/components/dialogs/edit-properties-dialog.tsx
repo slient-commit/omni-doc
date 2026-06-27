@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { useRenameFolder } from '@/hooks/use-folder-queries';
 import { useUpdateDocument } from '@/hooks/use-document-queries';
 import { useAuth } from '@/contexts/auth-context';
@@ -28,6 +29,10 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
   const [name, setName] = useState('');
   const [documentDate, setDocumentDate] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [allowEdit, setAllowEdit] = useState(true);
+  const [allowDelete, setAllowDelete] = useState(true);
+  const [allowMove, setAllowMove] = useState(true);
+  const [allowCopy, setAllowCopy] = useState(true);
 
   const renameFolder = useRenameFolder();
   const updateDocument = useUpdateDocument();
@@ -41,9 +46,17 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
       setName(doc.originalName);
       setDocumentDate(doc.documentDate?.split('T')[0] ?? '');
       setIsPrivate(doc.isPrivate);
+      setAllowEdit(doc.allowEdit);
+      setAllowDelete(doc.allowDelete);
+      setAllowMove(doc.allowMove);
+      setAllowCopy(doc.allowCopy);
     } else if (folder) {
       setName(folder.name);
       setIsPrivate(folder.isPrivate);
+      setAllowEdit(folder.allowEdit);
+      setAllowDelete(folder.allowDelete);
+      setAllowMove(folder.allowMove);
+      setAllowCopy(folder.allowCopy);
     }
   }, [open, doc, folder]);
 
@@ -51,12 +64,10 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
     e.preventDefault();
     if (!name.trim()) return;
 
+    const ownerFields = isOwner ? { isPrivate, allowEdit, allowDelete, allowMove, allowCopy } : {};
+
     if (type === 'folder') {
-      renameFolder.mutate({
-        id: item.uuid,
-        name: name.trim(),
-        ...(isOwner ? { isPrivate } : {}),
-      }, {
+      renameFolder.mutate({ id: item.uuid, name: name.trim(), ...ownerFields }, {
         onSuccess: () => onOpenChange(false),
       });
     } else {
@@ -64,7 +75,7 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
         id: item.uuid,
         originalName: name.trim(),
         documentDate: documentDate || undefined,
-        ...(isOwner ? { isPrivate } : {}),
+        ...ownerFields,
       }, {
         onSuccess: () => onOpenChange(false),
       });
@@ -97,10 +108,35 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
             )}
 
             {isOwner && (
-              <div className="flex items-center gap-2">
-                <Checkbox id="prop-private" checked={isPrivate} onCheckedChange={(c) => setIsPrivate(c === true)} />
-                <Label htmlFor="prop-private">Private (only you can see this)</Label>
-              </div>
+              <>
+                <Separator />
+                <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Owner settings</Label>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox id="prop-private" checked={isPrivate} onCheckedChange={(c) => setIsPrivate(c === true)} />
+                  <Label htmlFor="prop-private">Private (only you can see this)</Label>
+                </div>
+
+                <Label className="text-xs text-muted-foreground">Allow other users to:</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="prop-allow-edit" checked={allowEdit} onCheckedChange={(c) => setAllowEdit(c === true)} />
+                    <Label htmlFor="prop-allow-edit" className="text-sm font-normal">Edit</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="prop-allow-delete" checked={allowDelete} onCheckedChange={(c) => setAllowDelete(c === true)} />
+                    <Label htmlFor="prop-allow-delete" className="text-sm font-normal">Delete</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="prop-allow-move" checked={allowMove} onCheckedChange={(c) => setAllowMove(c === true)} />
+                    <Label htmlFor="prop-allow-move" className="text-sm font-normal">Move</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="prop-allow-copy" checked={allowCopy} onCheckedChange={(c) => setAllowCopy(c === true)} />
+                    <Label htmlFor="prop-allow-copy" className="text-sm font-normal">Copy</Label>
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
