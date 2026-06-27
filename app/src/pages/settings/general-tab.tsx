@@ -58,7 +58,7 @@ export default function GeneralTab() {
   }
 
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="max-w-2xl space-y-6">
       <div className="space-y-4 rounded-lg border p-4">
         <div className="grid gap-2">
           <Label htmlFor="org-name">Organization name</Label>

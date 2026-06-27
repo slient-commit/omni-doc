@@ -78,7 +78,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-4 py-3">
+      <SidebarHeader className="flex h-14 items-center border-b px-4">
         <div className="flex items-center gap-2">
           <FolderOpen className="h-5 w-5 text-primary" />
           <span className="text-sm font-semibold">Omni Doc</span>

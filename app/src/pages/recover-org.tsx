@@ -31,7 +31,7 @@ export default function RecoverOrgPage({ deletedAt, recoveryDeadline }: RecoverO
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-5 text-destructive" />
