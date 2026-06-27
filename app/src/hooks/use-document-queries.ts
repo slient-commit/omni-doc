@@ -89,8 +89,8 @@ export function useRestoreDocument() {
 export function useCopyDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) =>
-      api.post(`/documents/${id}/copy`).then((r) => r.data),
+    mutationFn: ({ id, targetFolderId }: { id: number | string; targetFolderId?: number | null }) =>
+      api.post(`/documents/${id}/copy`, { targetFolderId }).then((r) => r.data),
     onSuccess: () => {
       qc.refetchQueries({ queryKey: ['documents'] });
       qc.refetchQueries({ queryKey: ['folders'] });

@@ -114,6 +114,7 @@ async function copyToFolder(req, res, next) {
   try {
     const result = await documentService.copyToFolder({
       id: req.params.id,
+      targetFolderId: req.body.targetFolderId || null,
       organizationId: req.user.organizationId,
     });
     res.status(201).json(result);

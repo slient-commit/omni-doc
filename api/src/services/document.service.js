@@ -213,8 +213,7 @@ async function move({ id, folderIds, organizationId }) {
   return { message: 'Document moved' };
 }
 
-// ponytail: in-place copy — duplicates file in same folder(s) with incremented name
-async function copyToFolder({ id, organizationId }) {
+async function copyToFolder({ id, targetFolderId, organizationId }) {
   const doc = await prisma.document.findFirst({
     where: { ...idOrUuid(id), organizationId, deletedAt: null },
     include: {
@@ -228,13 +227,23 @@ async function copyToFolder({ id, organizationId }) {
     throw err;
   }
 
-  // Increment name: "file.pdf" -> "file (1).pdf", "file (1).pdf" -> "file (2).pdf"
-  const ext = path.extname(doc.originalName);
-  const base = path.basename(doc.originalName, ext);
-  const match = base.match(/^(.+?)\s*\((\d+)\)$/);
-  const coreName = match ? match[1] : base;
-  const nextNum = match ? parseInt(match[2], 10) + 1 : 1;
-  const newOriginalName = `${coreName} (${nextNum})${ext}`;
+  const resolvedTargetFolderId = targetFolderId ? await resolveFolderId(targetFolderId) : null;
+
+  // Check if copying to same location — if so, increment name
+  const sourceFolderIds = doc.documentFolders.map((l) => l.folderId);
+  const isSameLocation = resolvedTargetFolderId
+    ? sourceFolderIds.includes(resolvedTargetFolderId)
+    : sourceFolderIds.length === 0; // both at root
+
+  let newOriginalName = doc.originalName;
+  if (isSameLocation) {
+    const ext = path.extname(doc.originalName);
+    const base = path.basename(doc.originalName, ext);
+    const match = base.match(/^(.+?)\s*\((\d+)\)$/);
+    const coreName = match ? match[1] : base;
+    const nextNum = match ? parseInt(match[2], 10) + 1 : 1;
+    newOriginalName = `${coreName} (${nextNum})${ext}`;
+  }
 
   // Clone physical file
   const crypto = require('crypto');
@@ -266,11 +275,17 @@ async function copyToFolder({ id, organizationId }) {
     },
   });
 
-  // Link copy to same folders as source
-  for (const link of doc.documentFolders) {
+  // Link copy to target folder (or same folders if no target)
+  if (resolvedTargetFolderId) {
     await prisma.documentFolder.create({
-      data: { documentId: copy.id, folderId: link.folderId },
+      data: { documentId: copy.id, folderId: resolvedTargetFolderId },
     });
+  } else {
+    for (const link of doc.documentFolders) {
+      await prisma.documentFolder.create({
+        data: { documentId: copy.id, folderId: link.folderId },
+      });
+    }
   }
 
   return copy;
