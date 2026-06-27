@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router';
 import {
   FolderOpen, ArrowRight, ChevronRight, ArrowUp,
   Server, KeyRound, Shield, FileText, FolderClosed, Share2,
-  Trash2, Users, Settings, Building2, Heart, Rocket,
+  Trash2, Users, Building2, Heart, Rocket,
   Database, Lock, Mail, Archive, BookOpen,
 } from 'lucide-react';
 
