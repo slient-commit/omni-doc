@@ -10,13 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useInviteUser } from "@/hooks/use-user-queries";
 import { useRoles } from "@/hooks/use-role-queries";
 import { Loader2Icon, UserPlusIcon } from "lucide-react";
@@ -124,22 +117,18 @@ export function InviteUserDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label>Role</Label>
-              <Select
-                value={roleId != null ? String(roleId) : undefined}
-                onValueChange={(val) => setRoleId(Number(val))}
+              <Label htmlFor="invite-role">Role</Label>
+              <select
+                id="invite-role"
+                value={roleId ?? ''}
+                onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full rounded-md border bg-background px-3 text-sm"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles?.map((role) => (
-                    <SelectItem key={role.id} value={String(role.id)}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Select a role</option>
+                {roles?.map((role) => (
+                  <option key={role.id} value={role.id}>{role.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
