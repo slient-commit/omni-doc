@@ -45,7 +45,7 @@ function ActionMenu({ user, roles, onChangeRole, onToggleActive }: {
         <MoreHorizontal className="size-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+        <div className="fixed z-50 mt-1 min-w-[180px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
           <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Actions</p>
           <div className="my-1 h-px bg-border" />
           <button

@@ -45,7 +45,7 @@ function RoleActionMenu({ role, onEdit, onDelete }: {
         <MoreHorizontal className="size-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[140px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+        <div className="fixed z-50 mt-1 min-w-[140px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
           <button
             className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => { onEdit(); close(); }}
