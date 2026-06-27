@@ -52,7 +52,11 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
     if (!name.trim()) return;
 
     if (type === 'folder') {
-      renameFolder.mutate({ id: item.uuid, name: name.trim() }, {
+      renameFolder.mutate({
+        id: item.uuid,
+        name: name.trim(),
+        ...(isOwner ? { isPrivate } : {}),
+      }, {
         onSuccess: () => onOpenChange(false),
       });
     } else {
@@ -92,7 +96,7 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
               </div>
             )}
 
-            {type === 'document' && isOwner && (
+            {isOwner && (
               <div className="flex items-center gap-2">
                 <Checkbox id="prop-private" checked={isPrivate} onCheckedChange={(c) => setIsPrivate(c === true)} />
                 <Label htmlFor="prop-private">Private (only you can see this)</Label>

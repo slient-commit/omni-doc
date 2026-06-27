@@ -29,7 +29,7 @@ export function useFolderAncestors(id: string | number | null) {
 export function useCreateFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; parentId?: string | number | null }) =>
+    mutationFn: (data: { name: string; parentId?: string | number | null; isPrivate?: boolean }) =>
       api.post<Folder>('/folders', data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
@@ -39,8 +39,8 @@ export function useCreateFolder() {
 export function useRenameFolder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: number | string; name: string }) =>
-      api.patch<Folder>(`/folders/${id}`, { name }).then((r) => r.data),
+    mutationFn: ({ id, ...data }: { id: number | string; name?: string; isPrivate?: boolean }) =>
+      api.patch<Folder>(`/folders/${id}`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['folders'] }),
   });
 }

@@ -9,7 +9,7 @@ function idOrUuid(identifier) {
   return Number.isInteger(num) ? { id: num } : { uuid: identifier };
 }
 
-async function create({ name, parentId, organizationId, createdById }) {
+async function create({ name, parentId, organizationId, createdById, isPrivate }) {
   const resolvedParentId = await resolveId(parentId);
   if (parentId && !resolvedParentId) {
     const err = new Error('Parent folder not found');
@@ -17,7 +17,7 @@ async function create({ name, parentId, organizationId, createdById }) {
     throw err;
   }
   return prisma.folder.create({
-    data: { name, parentId: resolvedParentId, organizationId, createdById },
+    data: { name, parentId: resolvedParentId, organizationId, createdById, isPrivate: isPrivate || false },
   });
 }
 
@@ -104,7 +104,7 @@ async function getAncestors(id) {
   return ancestors;
 }
 
-async function rename({ id, name, organizationId }) {
+async function rename({ id, name, isPrivate, organizationId, userId }) {
   const folder = await prisma.folder.findFirst({
     where: { ...idOrUuid(id), organizationId, deletedAt: null },
   });
@@ -113,7 +113,15 @@ async function rename({ id, name, organizationId }) {
     err.status = 404;
     throw err;
   }
-  return prisma.folder.update({ where: { id: folder.id }, data: { name } });
+  if (isPrivate !== undefined && folder.createdById !== userId) {
+    const err = new Error('Only the owner can change privacy');
+    err.status = 403;
+    throw err;
+  }
+  const data = {};
+  if (name !== undefined) data.name = name;
+  if (isPrivate !== undefined) data.isPrivate = isPrivate;
+  return prisma.folder.update({ where: { id: folder.id }, data });
 }
 
 async function getDescendantFolderIds(folderId) {

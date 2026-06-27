@@ -9,6 +9,7 @@ async function create(req, res, next) {
       parentId: req.body.parentId || null,
       organizationId: req.user.organizationId,
       createdById: req.user.id,
+      isPrivate: req.body.isPrivate || false,
     });
     res.status(201).json(folder);
   } catch (err) { next(err); }
@@ -50,7 +51,9 @@ async function rename(req, res, next) {
     const folder = await folderService.rename({
       id: req.params.id,
       name: req.body.name,
+      isPrivate: req.body.isPrivate,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(folder);
   } catch (err) { next(err); }
