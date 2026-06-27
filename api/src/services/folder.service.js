@@ -42,7 +42,12 @@ async function list({ organizationId, parentId, userId, sharedWithMe }) {
     where,
     orderBy: { name: 'asc' },
     include: {
-      _count: { select: { children: true, documentFolders: true } },
+      _count: {
+        select: {
+          children: { where: { deletedAt: null } },
+          documentFolders: { where: { document: { deletedAt: null } } },
+        },
+      },
       createdBy: { select: { id: true, firstName: true, lastName: true } },
     },
   });
@@ -56,7 +61,7 @@ async function getById({ id, userId, organizationId }) {
       children: {
         where: { deletedAt: null },
         orderBy: { name: 'asc' },
-        include: { _count: { select: { children: true, documentFolders: true } } },
+        include: { _count: { select: { children: { where: { deletedAt: null } }, documentFolders: { where: { document: { deletedAt: null } } } } } },
       },
       documentFolders: {
         include: {

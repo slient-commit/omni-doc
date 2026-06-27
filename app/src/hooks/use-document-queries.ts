@@ -55,8 +55,9 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.delete(`/documents/${id}`).then((r) => r.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
-      qc.invalidateQueries({ queryKey: ['trash'] });
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.refetchQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -66,8 +67,9 @@ export function usePermanentDeleteDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.delete(`/documents/${id}/permanent`).then((r) => r.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
-      qc.invalidateQueries({ queryKey: ['trash'] });
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.refetchQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -77,8 +79,9 @@ export function useRestoreDocument() {
   return useMutation({
     mutationFn: (id: number | string) => api.post(`/documents/${id}/restore`).then((r) => r.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
-      qc.invalidateQueries({ queryKey: ['trash'] });
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
+      qc.refetchQueries({ queryKey: ['trash'] });
     },
   });
 }
@@ -89,8 +92,8 @@ export function useCopyDocument() {
     mutationFn: ({ id, folderId }: { id: number | string; folderId: number }) =>
       api.post(`/documents/${id}/copy`, { folderId }).then((r) => r.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
-      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
     },
   });
 }
@@ -101,8 +104,8 @@ export function useMoveDocument() {
     mutationFn: ({ id, folderIds }: { id: number | string; folderIds: number[] }) =>
       api.post(`/documents/${id}/move`, { folderIds }).then((r) => r.data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['documents'] });
-      qc.invalidateQueries({ queryKey: ['folders'] });
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
     },
   });
 }
