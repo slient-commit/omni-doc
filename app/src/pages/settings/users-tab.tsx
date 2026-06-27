@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useUsers, useUpdateUser, useDeactivateUser } from "@/hooks/use-user-queries";
+import { useAuth } from "@/contexts/auth-context";
 import { useRoles } from "@/hooks/use-role-queries";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -155,6 +156,7 @@ function EditUserDialog({ open, onOpenChange, user }: {
 }
 
 export default function UsersTab() {
+  const { user: currentUser } = useAuth();
   const { data: users = [], isLoading } = useUsers();
   const { data: roles = [] } = useRoles();
   const updateUser = useUpdateUser();
@@ -194,7 +196,8 @@ export default function UsersTab() {
         </TableHeader>
         <TableBody>
           {users.map((user) => {
-            const isOwner = user.role.name === "Owner";
+            // ponytail: can't change your own role/deactivate/delete yourself
+            const isSelf = user.id === currentUser?.id;
             return (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
@@ -209,7 +212,7 @@ export default function UsersTab() {
                   <ActionMenu
                     user={user}
                     roles={roles}
-                    isOwner={isOwner}
+                    isOwner={isSelf}
                     onChangeRole={(roleId) => updateUser.mutate({ id: user.id, roleId })}
                     onToggleActive={() => updateUser.mutate({ id: user.id, isActive: !user.isActive })}
                     onEdit={() => setEditUser(user)}

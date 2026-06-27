@@ -1,6 +1,6 @@
 'use strict';
 
-// ponytail: check per-item permission flags — owner always allowed
+// ponytail: check per-item permission flags — item creator always allowed
 function checkItemPermission(item, userId, action) {
   if (item.createdById === userId) return; // owner always allowed
   const flag = `allow${action.charAt(0).toUpperCase() + action.slice(1)}`;
