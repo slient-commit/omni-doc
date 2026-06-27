@@ -48,15 +48,20 @@ export function FileExplorerContextMenu({
 
   const closeMenu = useCallback(() => setMenuPos(null), []);
 
-  // Close on outside click or escape
+  // Close on any click, right-click elsewhere, or escape
   useEffect(() => {
     if (!menuPos) return;
     const handleClick = () => closeMenu();
+    const handleContext = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu();
+    };
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
     document.addEventListener('click', handleClick);
+    document.addEventListener('contextmenu', handleContext);
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('click', handleClick);
+      document.removeEventListener('contextmenu', handleContext);
       document.removeEventListener('keydown', handleKey);
     };
   }, [menuPos, closeMenu]);
