@@ -23,7 +23,11 @@ export function MoveDialog({ open, onOpenChange, mode, type, itemId, itemName }:
   const [selectedFolderUuid, setSelectedFolderUuid] = useState<string | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{ id: string | null; name: string }[]>([]);
 
-  const { data: folders = [], isLoading } = useFolders(currentParent);
+  const { data: allFolders = [], isLoading } = useFolders(currentParent);
+  // Hide source folder from list when moving/copying a folder
+  const folders = type === 'folder'
+    ? allFolders.filter((f) => f.uuid !== itemId && String(f.id) !== String(itemId))
+    : allFolders;
   const moveDocument = useMoveDocument();
   const copyDocument = useCopyDocument();
   const moveFolder = useMoveFolder();
