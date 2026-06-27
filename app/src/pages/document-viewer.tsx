@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, ShieldAlert } from 'lucide-react';
 
 function isPreviewable(mimeType: string | null): boolean {
   if (!mimeType) return false;
@@ -38,7 +38,13 @@ export default function DocumentViewerPage() {
   if (isError || !doc) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
-        <p className="text-sm text-muted-foreground">Document not found.</p>
+        <ShieldAlert className="size-12 text-muted-foreground/50" />
+        <div className="text-center">
+          <h2 className="text-lg font-semibold">Access Denied</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You don't have permission to view this document, or it doesn't exist.
+          </p>
+        </div>
         <Button variant="outline" onClick={() => navigate(-1)}>
           <ArrowLeft className="size-4" /> Go back
         </Button>

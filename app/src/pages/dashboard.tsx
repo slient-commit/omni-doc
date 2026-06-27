@@ -5,9 +5,10 @@ import { FileExplorerBreadcrumb } from "@/components/file-explorer/file-explorer
 import { FileExplorerGrid } from "@/components/file-explorer/file-explorer-grid";
 import { FileExplorerList } from "@/components/file-explorer/file-explorer-list";
 import { FileExplorerEmpty } from "@/components/file-explorer/file-explorer-empty";
-import { useFolders } from "@/hooks/use-folder-queries";
+import { useFolders, useFolder } from "@/hooks/use-folder-queries";
 import { useDocuments } from "@/hooks/use-document-queries";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, ShieldAlert, ArrowLeft } from "lucide-react";
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,13 +18,13 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
 
-  const { data: folders = [], isLoading: foldersLoading } =
-    useFolders(folderId);
-  const { data: documents = [], isLoading: documentsLoading } = useDocuments({
-    folderId,
-  });
+  // Check if the folder itself is accessible when navigating into one
+  const { isError: folderError, isLoading: folderChecking } = useFolder(folderId ?? "");
 
-  const isLoading = foldersLoading || documentsLoading;
+  const { data: folders = [], isLoading: foldersLoading } = useFolders(folderId);
+  const { data: documents = [], isLoading: documentsLoading } = useDocuments({ folderId });
+
+  const isLoading = folderId ? folderChecking : (foldersLoading || documentsLoading);
 
   const filteredFolders = useMemo(() => {
     if (!search) return folders;
@@ -49,6 +50,24 @@ export default function DashboardPage() {
 
   function handleDocumentClick(uuid: string) {
     navigate(`/documents/${uuid}`);
+  }
+
+  // Unauthorized / not found folder
+  if (folderId && folderError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <ShieldAlert className="size-12 text-muted-foreground/50" />
+        <div className="text-center">
+          <h2 className="text-lg font-semibold">Access Denied</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You don't have permission to view this folder, or it doesn't exist.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => handleNavigateFolder(null)}>
+          <ArrowLeft className="size-4" /> Back to Documents
+        </Button>
+      </div>
+    );
   }
 
   return (
