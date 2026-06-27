@@ -110,4 +110,15 @@ async function move(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move };
+async function copyToFolder(req, res, next) {
+  try {
+    const result = await documentService.copyToFolder({
+      id: req.params.id,
+      folderId: parseInt(req.body.folderId, 10),
+      organizationId: req.user.organizationId,
+    });
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder };

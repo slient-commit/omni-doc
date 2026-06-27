@@ -59,4 +59,10 @@ router.post('/:id/move',
   ctrl.move,
 );
 
+router.post('/:id/copy',
+  checkPermission('update', 'document'),
+  validate([param('id').notEmpty()]),
+  ctrl.copyToFolder,
+);
+
 module.exports = router;

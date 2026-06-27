@@ -209,4 +209,23 @@ async function move({ id, folderIds, organizationId }) {
   return { message: 'Document moved' };
 }
 
-module.exports = { upload, list, getById, getDownloadInfo, update, softDelete, hardDelete, restore, move };
+async function copyToFolder({ id, folderId, organizationId }) {
+  const doc = await prisma.document.findFirst({
+    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+  });
+  if (!doc) {
+    const err = new Error('Document not found');
+    err.status = 404;
+    throw err;
+  }
+  // ponytail: upsert-like — ignore if already in that folder
+  const existing = await prisma.documentFolder.findUnique({
+    where: { documentId_folderId: { documentId: doc.id, folderId } },
+  });
+  if (!existing) {
+    await prisma.documentFolder.create({ data: { documentId: doc.id, folderId } });
+  }
+  return { message: 'Document copied to folder' };
+}
+
+module.exports = { upload, list, getById, getDownloadInfo, update, softDelete, hardDelete, restore, move, copyToFolder };

@@ -4,24 +4,26 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useFolders } from '@/hooks/use-folder-queries';
-import { useMoveDocument } from '@/hooks/use-document-queries';
+import { useMoveDocument, useCopyDocument } from '@/hooks/use-document-queries';
 import { Folder as FolderIcon, ChevronRight, Loader2, Home } from 'lucide-react';
 
 interface MoveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: 'move' | 'copy';
   documentId: number | string;
   documentName: string;
 }
 
-// ponytail: simple folder picker — navigate into folders, select destination
-export function MoveDialog({ open, onOpenChange, documentId, documentName }: MoveDialogProps) {
+export function MoveDialog({ open, onOpenChange, mode, documentId, documentName }: MoveDialogProps) {
   const [currentParent, setCurrentParent] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [breadcrumb, setBreadcrumb] = useState<{ id: string | null; name: string }[]>([]);
 
   const { data: folders = [], isLoading } = useFolders(currentParent);
   const moveDocument = useMoveDocument();
+  const copyDocument = useCopyDocument();
+  const mutation = mode === 'move' ? moveDocument : copyDocument;
 
   useEffect(() => {
     if (open) {
@@ -45,28 +47,33 @@ export function MoveDialog({ open, onOpenChange, documentId, documentName }: Mov
     } else {
       const target = breadcrumb[index];
       setCurrentParent(target.id);
-      // resolve numeric id from folders if we have it — otherwise keep selectedFolderId
       setBreadcrumb((prev) => prev.slice(0, index + 1));
     }
   }
 
-  function handleMove() {
-    const folderIds = selectedFolderId ? [selectedFolderId] : [];
-    moveDocument.mutate(
-      { id: documentId, folderIds },
-      { onSuccess: () => onOpenChange(false) },
-    );
+  function handleSubmit() {
+    if (mode === 'move') {
+      const folderIds = selectedFolderId ? [selectedFolderId] : [];
+      moveDocument.mutate({ id: documentId, folderIds }, { onSuccess: () => onOpenChange(false) });
+    } else {
+      if (!selectedFolderId) return;
+      copyDocument.mutate({ id: documentId, folderId: selectedFolderId }, { onSuccess: () => onOpenChange(false) });
+    }
   }
 
+  const title = mode === 'move' ? `Move "${documentName}"` : `Copy "${documentName}"`;
+  const actionLabel = mode === 'move'
+    ? (selectedFolderId ? 'Move here' : 'Move to root')
+    : 'Copy here';
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) moveDocument.reset(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) mutation.reset(); onOpenChange(v); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Move "{documentName}"</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Select a destination folder.</DialogDescription>
         </DialogHeader>
 
-        {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <button className="cursor-pointer hover:text-foreground" onClick={() => navigateTo(-1)}>
             <Home className="size-4" />
@@ -74,17 +81,13 @@ export function MoveDialog({ open, onOpenChange, documentId, documentName }: Mov
           {breadcrumb.map((item, i) => (
             <span key={item.id} className="flex items-center gap-1">
               <ChevronRight className="size-3" />
-              <button
-                className="cursor-pointer hover:text-foreground"
-                onClick={() => navigateTo(i)}
-              >
+              <button className="cursor-pointer hover:text-foreground" onClick={() => navigateTo(i)}>
                 {item.name}
               </button>
             </span>
           ))}
         </div>
 
-        {/* Folder list */}
         <div className="max-h-60 min-h-[120px] overflow-y-auto rounded-md border">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -112,15 +115,18 @@ export function MoveDialog({ open, onOpenChange, documentId, documentName }: Mov
           )}
         </div>
 
-        {moveDocument.isError && (
-          <p className="text-sm text-destructive">{moveDocument.error?.message ?? 'Move failed.'}</p>
+        {mutation.isError && (
+          <p className="text-sm text-destructive">{mutation.error?.message ?? `${mode} failed.`}</p>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleMove} disabled={moveDocument.isPending}>
-            {moveDocument.isPending && <Loader2 className="size-4 animate-spin" />}
-            {selectedFolderId ? 'Move here' : 'Move to root'}
+          <Button
+            onClick={handleSubmit}
+            disabled={mutation.isPending || (mode === 'copy' && !selectedFolderId)}
+          >
+            {mutation.isPending && <Loader2 className="size-4 animate-spin" />}
+            {actionLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
