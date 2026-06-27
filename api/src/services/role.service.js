@@ -8,6 +8,7 @@ async function list({ organizationId }) {
     orderBy: { name: 'asc' },
     include: {
       _count: { select: { rolePermissions: true, users: true } },
+      rolePermissions: { select: { permissionId: true } },
     },
   });
 }

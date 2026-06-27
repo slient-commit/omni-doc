@@ -17,6 +17,7 @@ export interface Role {
   isSystem: boolean;
   isDefault: boolean;
   _count?: { users: number; rolePermissions: number };
+  rolePermissions?: { permissionId: number }[];
 }
 
 export interface Permission {

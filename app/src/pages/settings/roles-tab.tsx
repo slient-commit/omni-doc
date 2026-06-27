@@ -45,7 +45,7 @@ function RoleActionMenu({ role, onEdit, onDelete }: {
         <MoreHorizontal className="size-4" />
       </button>
       {open && (
-        <div className="fixed z-50 mt-1 min-w-[140px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+        <div className="fixed z-50 mt-1 min-w-[140px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md" style={{ transform: 'translateX(-80%)' }}>
           <button
             className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => { onEdit(); close(); }}
@@ -107,7 +107,7 @@ export default function RolesTab() {
             <TableHead>Description</TableHead>
             <TableHead className="w-24">Users</TableHead>
             <TableHead className="w-28">Permissions</TableHead>
-            <TableHead className="w-16" />
+            <TableHead className="w-24">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -142,7 +142,7 @@ export default function RolesTab() {
           open={!!editRole}
           onOpenChange={(open) => { if (!open) setEditRole(null); }}
           role={editRole}
-          currentPermissionIds={[]}
+          currentPermissionIds={editRole.rolePermissions?.map((rp) => rp.permissionId) ?? []}
         />
       )}
 
