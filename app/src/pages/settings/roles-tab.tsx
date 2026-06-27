@@ -108,11 +108,7 @@ export default function RolesTab() {
               </TableCell>
               <TableCell>
                 <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <button className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" />
-                    }
-                  >
+                  <DropdownMenuTrigger className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
                     <MoreHorizontal className="size-4" />
                     <span className="sr-only">Actions</span>
                   </DropdownMenuTrigger>
