@@ -49,6 +49,9 @@ async function list({ organizationId, userId, folderId, categoryId, search, crea
   if (folderId) {
     const resolvedFid = await resolveFolderId(folderId);
     if (resolvedFid) where.documentFolders = { some: { folderId: resolvedFid } };
+  } else if (!createdById && !sharedWithMe) {
+    // ponytail: root view — only show documents not in any folder
+    where.documentFolders = { none: {} };
   }
   if (categoryId) {
     where.categoryId = parseInt(categoryId, 10);
@@ -231,8 +234,9 @@ async function copyToFolder({ id, folderId, organizationId }) {
 
   try {
     fs.copyFileSync(srcPath, destPath);
-  } catch (err) {
-    const e = new Error('Failed to copy file');
+  } catch (copyErr) {
+    console.error('[document] Copy failed:', { srcPath, destPath, error: copyErr.message });
+    const e = new Error(`Failed to copy file: ${copyErr.message}`);
     e.status = 500;
     throw e;
   }
