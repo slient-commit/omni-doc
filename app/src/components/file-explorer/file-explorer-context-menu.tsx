@@ -119,7 +119,7 @@ export function FileExplorerContextMenu({
             <>
               {menuItem(<FolderOpen className="size-4" />, 'Open', () => onOpen?.())}
               <div className="my-1 h-px bg-border" />
-              {menuItem(<Pencil className="size-4" />, 'Rename', () => setRenameOpen(true), { disabled: !canEdit })}
+              {canEdit && menuItem(<Pencil className="size-4" />, 'Rename', () => setRenameOpen(true))}
               {type === 'document' && menuItem(
                 <Download className="size-4" />, 'Download',
                 () => window.open(`/api/documents/${uuid}/download?token=${encodeURIComponent(token ?? '')}`, '_blank'),
@@ -127,12 +127,16 @@ export function FileExplorerContextMenu({
               {menuItem(<FolderInput className="size-4" />, 'Move to', () => setMoveOpen(true), { disabled: !canMove })}
               {menuItem(<Copy className="size-4" />, 'Copy to', () => setCopyOpen(true), { disabled: !canCopy })}
               {menuItem(<Share2 className="size-4" />, 'Share', () => setShareOpen(true))}
-              {menuItem(<Settings2 className="size-4" />, 'Properties', () => setPropsOpen(true), { disabled: !canEdit })}
-              <div className="my-1 h-px bg-border" />
-              {menuItem(<Trash2 className="size-4" />, 'Delete', () => {
-                if (type === 'folder') deleteFolder.mutate(uuid);
-                else deleteDocument.mutate(uuid);
-              }, { destructive: true, disabled: !canDelete })}
+              {menuItem(<Settings2 className="size-4" />, canEdit ? 'Properties' : 'View details', () => setPropsOpen(true))}
+              {canDelete && (
+                <>
+                  <div className="my-1 h-px bg-border" />
+                  {menuItem(<Trash2 className="size-4" />, 'Delete', () => {
+                    if (type === 'folder') deleteFolder.mutate(uuid);
+                    else deleteDocument.mutate(uuid);
+                  }, { destructive: true })}
+                </>
+              )}
             </>
           )}
         </div>

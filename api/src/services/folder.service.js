@@ -10,7 +10,7 @@ function idOrUuid(identifier) {
   return Number.isInteger(num) ? { id: num } : { uuid: identifier };
 }
 
-async function create({ name, parentId, organizationId, createdById, isPrivate }) {
+async function create({ name, parentId, organizationId, createdById, isPrivate, allowEdit = true, allowDelete = true, allowMove = true, allowCopy = true }) {
   const resolvedParentId = await resolveId(parentId);
   if (parentId && !resolvedParentId) {
     const err = new Error('Parent folder not found');
@@ -24,7 +24,7 @@ async function create({ name, parentId, organizationId, createdById, isPrivate }
     if (parent?.isPrivate) effectivePrivate = true;
   }
   return prisma.folder.create({
-    data: { name, parentId: resolvedParentId, organizationId, createdById, isPrivate: effectivePrivate },
+    data: { name, parentId: resolvedParentId, organizationId, createdById, isPrivate: effectivePrivate, allowEdit, allowDelete, allowMove, allowCopy },
   });
 }
 

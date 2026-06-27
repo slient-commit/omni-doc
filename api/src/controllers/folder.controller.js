@@ -10,6 +10,10 @@ async function create(req, res, next) {
       organizationId: req.user.organizationId,
       createdById: req.user.id,
       isPrivate: req.body.isPrivate || false,
+      allowEdit: req.body.allowEdit ?? true,
+      allowDelete: req.body.allowDelete ?? true,
+      allowMove: req.body.allowMove ?? true,
+      allowCopy: req.body.allowCopy ?? true,
     });
     res.status(201).json(folder);
   } catch (err) { next(err); }

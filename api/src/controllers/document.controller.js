@@ -15,6 +15,10 @@ async function upload(req, res, next) {
       organizationId: req.user.organizationId,
       createdById: req.user.id,
       isPrivate: req.body.isPrivate,
+      allowEdit: req.body.allowEdit,
+      allowDelete: req.body.allowDelete,
+      allowMove: req.body.allowMove,
+      allowCopy: req.body.allowCopy,
       metadata: req.body.metadata,
     });
     res.status(201).json(doc);

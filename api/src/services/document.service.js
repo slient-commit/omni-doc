@@ -16,7 +16,8 @@ async function resolveFolderId(identifier) {
   return folder?.id ?? null;
 }
 
-async function upload({ file, documentDate, categoryId, folderId, organizationId, createdById, isPrivate, metadata }) {
+async function upload({ file, documentDate, categoryId, folderId, organizationId, createdById, isPrivate, allowEdit, allowDelete, allowMove, allowCopy, metadata }) {
+  const toBool = (v) => v === 'true' || v === true;
   const data = {
     originalName: file.originalname,
     storedFilename: file.filename,
@@ -27,7 +28,11 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
     categoryId: categoryId ? parseInt(categoryId, 10) : null,
     organizationId,
     createdById,
-    isPrivate: isPrivate === 'true' || isPrivate === true,
+    isPrivate: toBool(isPrivate),
+    allowEdit: allowEdit !== undefined ? toBool(allowEdit) : true,
+    allowDelete: allowDelete !== undefined ? toBool(allowDelete) : true,
+    allowMove: allowMove !== undefined ? toBool(allowMove) : true,
+    allowCopy: allowCopy !== undefined ? toBool(allowCopy) : true,
     metadata: metadata ? JSON.parse(metadata) : undefined,
   };
 

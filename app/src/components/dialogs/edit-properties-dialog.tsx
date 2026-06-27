@@ -39,6 +39,7 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
   const mutation = type === 'folder' ? renameFolder : updateDocument;
 
   const isOwner = item.createdById === user?.id;
+  const canEdit = isOwner || item.allowEdit;
 
   useEffect(() => {
     if (!open) return;
@@ -91,19 +92,19 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
               <Settings2Icon className="size-4" />
               {type === 'folder' ? 'Folder' : 'Document'} Properties
             </DialogTitle>
-            <DialogDescription>Edit {type} details.</DialogDescription>
+            <DialogDescription>{canEdit ? `Edit ${type} details.` : `View ${type} details.`}</DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="prop-name">Name</Label>
-              <Input id="prop-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+              <Input id="prop-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus disabled={!canEdit} />
             </div>
 
             {type === 'document' && (
               <div className="grid gap-2">
                 <Label htmlFor="prop-date">Document date</Label>
-                <Input id="prop-date" type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} />
+                <Input id="prop-date" type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} disabled={!canEdit} />
               </div>
             )}
 
@@ -144,12 +145,14 @@ export function EditPropertiesDialog({ open, onOpenChange, type, item }: EditPro
             <p className="mt-2 text-sm text-destructive">{mutation.error?.message ?? 'Update failed.'}</p>
           )}
 
-          <DialogFooter className="mt-4">
-            <Button type="submit" disabled={!name.trim() || mutation.isPending}>
-              {mutation.isPending && <Loader2Icon className="size-4 animate-spin" />}
-              Save
-            </Button>
-          </DialogFooter>
+          {canEdit && (
+            <DialogFooter className="mt-4">
+              <Button type="submit" disabled={!name.trim() || mutation.isPending}>
+                {mutation.isPending && <Loader2Icon className="size-4 animate-spin" />}
+                Save
+              </Button>
+            </DialogFooter>
+          )}
         </form>
       </DialogContent>
     </Dialog>
