@@ -17,6 +17,13 @@ router.post('/',
 
 router.get('/', checkPermission('read', 'document'), ctrl.list);
 
+router.post('/upload-zip',
+  checkPermission('create', 'document'),
+  checkPermission('create', 'folder'),
+  uploadMiddleware.single('file'),
+  ctrl.uploadZip,
+);
+
 router.get('/:id',
   checkPermission('read', 'document'),
   validate([param('id').notEmpty()]),

@@ -140,4 +140,23 @@ async function copyToFolder(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder };
+async function uploadZip(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ error: { message: 'ZIP file is required' } });
+    const { extractZip } = require('../services/zip-upload.service');
+    const result = await extractZip({
+      zipPath: req.file.path,
+      parentFolderId: req.body.folderId || null,
+      organizationId: req.user.organizationId,
+      createdById: req.user.id,
+      isPrivate: req.body.isPrivate,
+      allowEdit: req.body.allowEdit,
+      allowDelete: req.body.allowDelete,
+      allowMove: req.body.allowMove,
+      allowCopy: req.body.allowCopy,
+    });
+    res.status(201).json(result);
+  } catch (err) { next(err); }
+}
+
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip };

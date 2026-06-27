@@ -41,6 +41,20 @@ export function useUploadDocument() {
   });
 }
 
+export function useUploadZip() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (formData: FormData) =>
+      api.post('/documents/upload-zip', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then((r) => r.data),
+    onSuccess: () => {
+      qc.refetchQueries({ queryKey: ['documents'] });
+      qc.refetchQueries({ queryKey: ['folders'] });
+    },
+  });
+}
+
 // ponytail: all mutations accept number|string — pass uuid from item.uuid
 export function useUpdateDocument() {
   const qc = useQueryClient();
