@@ -199,6 +199,7 @@ async function move({ id, folderIds, organizationId }) {
     throw err;
   }
 
+  // ponytail: files stay flat in org root — move only changes the virtual folder link
   await prisma.$transaction([
     prisma.documentFolder.deleteMany({ where: { documentId: doc.id } }),
     ...folderIds.map((folderId) =>
@@ -212,20 +213,55 @@ async function move({ id, folderIds, organizationId }) {
 async function copyToFolder({ id, folderId, organizationId }) {
   const doc = await prisma.document.findFirst({
     where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    include: { organization: { select: { storagePath: true } } },
   });
   if (!doc) {
     const err = new Error('Document not found');
     err.status = 404;
     throw err;
   }
-  // ponytail: upsert-like — ignore if already in that folder
-  const existing = await prisma.documentFolder.findUnique({
-    where: { documentId_folderId: { documentId: doc.id, folderId } },
-  });
-  if (!existing) {
-    await prisma.documentFolder.create({ data: { documentId: doc.id, folderId } });
+
+  // Clone the physical file with a new UUID filename
+  const crypto = require('crypto');
+  const ext = path.extname(doc.storedFilename);
+  const newFilename = `${crypto.randomUUID()}${ext}`;
+  const orgDir = path.join(config.storagePath, doc.organization.storagePath);
+  const srcPath = path.join(orgDir, doc.filePath);
+  const destPath = path.join(orgDir, newFilename);
+
+  try {
+    fs.copyFileSync(srcPath, destPath);
+  } catch (err) {
+    const e = new Error('Failed to copy file');
+    e.status = 500;
+    throw e;
   }
-  return { message: 'Document copied to folder' };
+
+  // Create a new independent document record
+  const copy = await prisma.document.create({
+    data: {
+      originalName: doc.originalName,
+      storedFilename: newFilename,
+      filePath: newFilename,
+      mimeType: doc.mimeType,
+      fileSize: doc.fileSize,
+      documentDate: doc.documentDate,
+      categoryId: doc.categoryId,
+      organizationId: doc.organizationId,
+      createdById: doc.createdById,
+      isPrivate: doc.isPrivate,
+      metadata: doc.metadata ?? undefined,
+    },
+  });
+
+  // Link the copy to the target folder
+  if (folderId) {
+    await prisma.documentFolder.create({
+      data: { documentId: copy.id, folderId },
+    });
+  }
+
+  return copy;
 }
 
 module.exports = { upload, list, getById, getDownloadInfo, update, softDelete, hardDelete, restore, move, copyToFolder };

@@ -234,6 +234,7 @@ async function move({ id, targetParentId, organizationId }) {
 async function copy({ id, targetParentId, organizationId, createdById }) {
   const source = await prisma.folder.findFirst({
     where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    include: { organization: { select: { storagePath: true } } },
   });
   if (!source) {
     const err = new Error('Folder not found');
@@ -241,15 +242,61 @@ async function copy({ id, targetParentId, organizationId, createdById }) {
     throw err;
   }
   const newParentId = await resolveId(targetParentId);
-  // ponytail: shallow copy — creates a new folder with same name, doesn't copy contents
-  const copied = await prisma.folder.create({
-    data: {
-      name: source.name,
-      parentId: newParentId,
-      organizationId,
-      createdById,
-    },
-  });
+
+  // ponytail: deep copy — recursively copies folder, subfolders, and documents (with physical file clones)
+  async function copyFolderRecursive(sourceFolderId, parentId) {
+    const srcFolder = await prisma.folder.findUnique({ where: { id: sourceFolderId } });
+    const newFolder = await prisma.folder.create({
+      data: { name: srcFolder.name, parentId, organizationId, createdById },
+    });
+
+    // Copy documents in this folder
+    const docLinks = await prisma.documentFolder.findMany({
+      where: { folderId: sourceFolderId },
+      include: { document: true },
+    });
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
+    const config = require('../config');
+    const orgDir = path.join(config.storagePath, source.organization.storagePath);
+
+    for (const link of docLinks) {
+      const doc = link.document;
+      if (doc.deletedAt) continue;
+      const ext = path.extname(doc.storedFilename);
+      const newFilename = `${crypto.randomUUID()}${ext}`;
+      try { fs.copyFileSync(path.join(orgDir, doc.filePath), path.join(orgDir, newFilename)); } catch { continue; }
+      const copy = await prisma.document.create({
+        data: {
+          originalName: doc.originalName,
+          storedFilename: newFilename,
+          filePath: newFilename,
+          mimeType: doc.mimeType,
+          fileSize: doc.fileSize,
+          documentDate: doc.documentDate,
+          categoryId: doc.categoryId,
+          organizationId,
+          createdById,
+          isPrivate: doc.isPrivate,
+          metadata: doc.metadata ?? undefined,
+        },
+      });
+      await prisma.documentFolder.create({ data: { documentId: copy.id, folderId: newFolder.id } });
+    }
+
+    // Copy child folders recursively
+    const children = await prisma.folder.findMany({
+      where: { parentId: sourceFolderId, deletedAt: null },
+    });
+    for (const child of children) {
+      await copyFolderRecursive(child.id, newFolder.id);
+    }
+
+    return newFolder;
+  }
+
+  const copied = await copyFolderRecursive(source.id, newParentId);
   return copied;
 }
 
