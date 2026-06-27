@@ -1,7 +1,7 @@
 'use strict';
 
 const prisma = require('../lib/prisma');
-const { folderVisibilityFilter } = require('../lib/visibility');
+const { folderVisibilityFilter, sharedWithMeFolderFilter } = require('../lib/visibility');
 
 // ponytail: accepts numeric id or string uuid
 function idOrUuid(identifier) {
@@ -30,12 +30,13 @@ async function resolveId(identifier) {
   return folder?.id ?? null;
 }
 
-async function list({ organizationId, parentId, userId }) {
+async function list({ organizationId, parentId, userId, sharedWithMe }) {
   const user = { id: userId, organizationId };
   const resolvedParentId = await resolveId(parentId);
+  const baseFilter = sharedWithMe ? sharedWithMeFolderFilter(user) : folderVisibilityFilter(user);
   const where = {
-    ...folderVisibilityFilter(user),
-    parentId: resolvedParentId,
+    ...baseFilter,
+    ...(sharedWithMe ? {} : { parentId: resolvedParentId }),
   };
   return prisma.folder.findMany({
     where,

@@ -30,6 +30,7 @@ async function list(req, res, next) {
       categoryId: req.query.categoryId,
       search: req.query.search,
       createdById: req.query.createdById,
+      sharedWithMe: req.query.sharedWithMe === 'true',
     });
     res.json(docs);
   } catch (err) { next(err); }

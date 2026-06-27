@@ -18,9 +18,10 @@ export default function SharedPage() {
   const [search, setSearch] = useState("");
 
   const { data: folders = [], isLoading: foldersLoading } =
-    useFolders(folderId);
+    useFolders(folderId, true);
   const { data: documents = [], isLoading: documentsLoading } = useDocuments({
     folderId,
+    sharedWithMe: true,
   });
 
   const isLoading = foldersLoading || documentsLoading;

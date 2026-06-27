@@ -21,6 +21,7 @@ async function list(req, res, next) {
       organizationId: req.user.organizationId,
       parentId,
       userId: req.user.id,
+      sharedWithMe: req.query.sharedWithMe === 'true',
     });
     res.json(folders);
   } catch (err) { next(err); }

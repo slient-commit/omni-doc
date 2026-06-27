@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const prisma = require('../lib/prisma');
 const config = require('../config');
-const { documentVisibilityFilter } = require('../lib/visibility');
+const { documentVisibilityFilter, sharedWithMeDocumentFilter } = require('../lib/visibility');
 
 // ponytail: resolve folder uuid to numeric id for FK
 async function resolveFolderId(identifier) {
@@ -42,9 +42,9 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
   return document;
 }
 
-async function list({ organizationId, userId, folderId, categoryId, search, createdById }) {
+async function list({ organizationId, userId, folderId, categoryId, search, createdById, sharedWithMe }) {
   const user = { id: userId, organizationId };
-  const where = { ...documentVisibilityFilter(user) };
+  const where = sharedWithMe ? { ...sharedWithMeDocumentFilter(user) } : { ...documentVisibilityFilter(user) };
 
   if (folderId) {
     const resolvedFid = await resolveFolderId(folderId);

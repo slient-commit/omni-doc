@@ -7,6 +7,7 @@ interface DocumentFilters {
   categoryId?: number;
   search?: string;
   createdById?: number;
+  sharedWithMe?: boolean;
 }
 
 export function useDocuments(filters: DocumentFilters = {}) {
