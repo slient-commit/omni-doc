@@ -1,7 +1,9 @@
 'use strict';
 
 const path = require('path');
+// ponytail: load from api/.env first, fall back to root .env for local dev
 require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../../../.env'), override: false });
 
 const config = {
   env: process.env.NODE_ENV || 'development',

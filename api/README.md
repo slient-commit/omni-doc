@@ -11,10 +11,10 @@ Express REST API for omni-doc.
 ```bash
 cd api
 npm install                 # also runs `prisma generate` via postinstall
-cp .env.example .env        # then set DATABASE_URL
+cp ../.env.example ../.env  # then set DATABASE_URL (single .env at repo root)
 ```
 
-Set `DATABASE_URL` in `.env` to your MySQL instance:
+Set `DATABASE_URL` in the root `.env` to your MySQL instance:
 
 ```
 DATABASE_URL="mysql://user:password@host:3306/omni_doc"
@@ -83,6 +83,5 @@ api/
 │   ├── routes/         # route definitions
 │   ├── app.js          # express app setup
 │   └── server.js       # HTTP server bootstrap
-├── .env.example
 └── package.json
 ```
