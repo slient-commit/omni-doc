@@ -30,9 +30,14 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
     metadata: metadata ? JSON.parse(metadata) : undefined,
   };
 
-  const document = await prisma.document.create({ data });
-
+  // Inherit privacy from target folder
   const resolvedFolderId = await resolveFolderId(folderId);
+  if (resolvedFolderId && !data.isPrivate) {
+    const folder = await prisma.folder.findUnique({ where: { id: resolvedFolderId }, select: { isPrivate: true } });
+    if (folder?.isPrivate) data.isPrivate = true;
+  }
+
+  const document = await prisma.document.create({ data });
   if (resolvedFolderId) {
     await prisma.documentFolder.create({
       data: { documentId: document.id, folderId: resolvedFolderId },

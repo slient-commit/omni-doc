@@ -16,8 +16,14 @@ async function create({ name, parentId, organizationId, createdById, isPrivate }
     err.status = 404;
     throw err;
   }
+  // Inherit privacy from parent if parent is private
+  let effectivePrivate = isPrivate || false;
+  if (resolvedParentId && !effectivePrivate) {
+    const parent = await prisma.folder.findUnique({ where: { id: resolvedParentId }, select: { isPrivate: true } });
+    if (parent?.isPrivate) effectivePrivate = true;
+  }
   return prisma.folder.create({
-    data: { name, parentId: resolvedParentId, organizationId, createdById, isPrivate: isPrivate || false },
+    data: { name, parentId: resolvedParentId, organizationId, createdById, isPrivate: effectivePrivate },
   });
 }
 
@@ -120,7 +126,20 @@ async function rename({ id, name, isPrivate, organizationId, userId }) {
   }
   const data = {};
   if (name !== undefined) data.name = name;
-  if (isPrivate !== undefined) data.isPrivate = isPrivate;
+  if (isPrivate !== undefined) {
+    data.isPrivate = isPrivate;
+    // Cascade privacy to all descendant folders and their documents
+    const descendantIds = await getDescendantFolderIds(folder.id);
+    const allFolderIds = [folder.id, ...descendantIds];
+    await prisma.folder.updateMany({
+      where: { id: { in: allFolderIds } },
+      data: { isPrivate },
+    });
+    await prisma.document.updateMany({
+      where: { documentFolders: { some: { folderId: { in: allFolderIds } } } },
+      data: { isPrivate },
+    });
+  }
   return prisma.folder.update({ where: { id: folder.id }, data });
 }
 
