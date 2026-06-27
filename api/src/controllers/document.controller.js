@@ -73,6 +73,7 @@ async function update(req, res, next) {
       id: req.params.id,
       ...req.body,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(doc);
   } catch (err) { next(err); }
@@ -83,6 +84,7 @@ async function softDelete(req, res, next) {
     const result = await documentService.softDelete({
       id: req.params.id,
       organizationId: req.user.organizationId,
+      userId: req.user.id,
     });
     res.json(result);
   } catch (err) { next(err); }

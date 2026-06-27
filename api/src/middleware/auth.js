@@ -7,6 +7,9 @@ const prisma = require('../lib/prisma');
 async function authenticate(req, res, next) {
   const header = req.headers.authorization;
   // ponytail: also accept ?token= for iframe/img loads that can't send headers
+  // These tokens are the same JWT — acceptable because downloads are short-lived actions
+  // and tokens are already short-lived (7d default). For higher security, implement
+  // one-time download tokens.
   const queryToken = req.query.token;
   const bearerToken = header?.startsWith('Bearer ') ? header.slice(7) : null;
   const token = bearerToken || queryToken;

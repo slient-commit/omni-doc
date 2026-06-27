@@ -30,7 +30,7 @@ async function resolveId(identifier) {
   return folder?.id ?? null;
 }
 
-async function list({ organizationId, parentId, userId, sharedWithMe }) {
+async function list({ organizationId, parentId, userId, sharedWithMe, page = 1, limit = 100 }) {
   const user = { id: userId, organizationId };
   const resolvedParentId = await resolveId(parentId);
   const baseFilter = sharedWithMe ? sharedWithMeFolderFilter(user) : folderVisibilityFilter(user);
@@ -41,6 +41,8 @@ async function list({ organizationId, parentId, userId, sharedWithMe }) {
   return prisma.folder.findMany({
     where,
     orderBy: { name: 'asc' },
+    skip: (Math.max(1, page) - 1) * Math.min(limit, 500),
+    take: Math.min(limit, 500),
     include: {
       _count: {
         select: {

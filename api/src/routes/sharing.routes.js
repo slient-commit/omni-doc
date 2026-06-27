@@ -1,6 +1,9 @@
 'use strict';
 
 const { Router } = require('express');
+const rateLimit = require('express-rate-limit');
+
+const shareLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: { error: { message: 'Too many requests' } } });
 const { param, body } = require('express-validator');
 const { validate } = require('../middleware/validate');
 const { checkPermission } = require('../middleware/checkPermission');
@@ -66,7 +69,7 @@ shareLinkRoutes.delete('/:id',
 // Public share access route (mounted under /shared, no auth)
 const publicShareRoutes = Router();
 
-publicShareRoutes.get('/:token', ctrl.accessShareLink);
-publicShareRoutes.get('/:token/download', ctrl.downloadSharedFile);
+publicShareRoutes.get('/:token', shareLimiter, ctrl.accessShareLink);
+publicShareRoutes.get('/:token/download', shareLimiter, ctrl.downloadSharedFile);
 
 module.exports = { documentInviteRoutes, folderInviteRoutes, shareLinkRoutes, publicShareRoutes };

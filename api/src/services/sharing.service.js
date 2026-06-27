@@ -217,9 +217,11 @@ async function accessShareLink({ token, password }) {
     }
   }
 
-  if (link.document) return { type: 'document', document: link.document };
-  if (link.folder) return { type: 'folder', folder: link.folder };
-  return { type: 'unknown' };
+  if (link.document && !link.document.deletedAt) return { type: 'document', document: link.document };
+  if (link.folder && !link.folder.deletedAt) return { type: 'folder', folder: link.folder };
+  const err2 = new Error('Linked item has been deleted');
+  err2.status = 410;
+  throw err2;
 }
 
 module.exports = {

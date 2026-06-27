@@ -42,7 +42,7 @@ async function upload({ file, documentDate, categoryId, folderId, organizationId
   return document;
 }
 
-async function list({ organizationId, userId, folderId, categoryId, search, createdById, sharedWithMe }) {
+async function list({ organizationId, userId, folderId, categoryId, search, createdById, sharedWithMe, page = 1, limit = 100 }) {
   const user = { id: userId, organizationId };
   const where = sharedWithMe ? { ...sharedWithMeDocumentFilter(user) } : { ...documentVisibilityFilter(user) };
 
@@ -66,6 +66,8 @@ async function list({ organizationId, userId, folderId, categoryId, search, crea
   return prisma.document.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    skip: (Math.max(1, page) - 1) * Math.min(limit, 500),
+    take: Math.min(limit, 500),
     include: {
       createdBy: { select: { id: true, firstName: true, lastName: true } },
       category: true,
@@ -102,7 +104,15 @@ async function getById({ id, userId, organizationId }) {
 }
 
 function resolveFilePath(orgStoragePath, filePath) {
-  return path.join(config.storagePath, orgStoragePath, filePath);
+  const orgDir = path.resolve(config.storagePath, orgStoragePath);
+  const resolved = path.resolve(orgDir, filePath);
+  // ponytail: path traversal guard
+  if (!resolved.startsWith(orgDir)) {
+    const err = new Error('Invalid file path');
+    err.status = 400;
+    throw err;
+  }
+  return resolved;
 }
 
 async function getDownloadInfo({ id, userId, organizationId }) {
@@ -122,9 +132,9 @@ async function getDownloadInfo({ id, userId, organizationId }) {
   };
 }
 
-async function update({ id, originalName, categoryId, documentDate, metadata, organizationId }) {
+async function update({ id, originalName, categoryId, documentDate, metadata, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!doc) {
     const err = new Error('Document not found');
@@ -141,9 +151,9 @@ async function update({ id, originalName, categoryId, documentDate, metadata, or
   return prisma.document.update({ where: { id: doc.id }, data });
 }
 
-async function softDelete({ id, organizationId }) {
+async function softDelete({ id, organizationId, userId }) {
   const doc = await prisma.document.findFirst({
-    where: { ...idOrUuid(id), organizationId, deletedAt: null },
+    where: { ...idOrUuid(id), ...documentVisibilityFilter({ id: userId, organizationId }) },
   });
   if (!doc) {
     const err = new Error('Document not found');

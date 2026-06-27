@@ -35,7 +35,7 @@ export default function RegisterPage() {
       setValidationError('Passwords do not match');
       return;
     }
-    if (form.password.length < 8) {
+    if (form.password.length < 10) {
       setValidationError('Password must be at least 8 characters');
       return;
     }
@@ -140,9 +140,9 @@ export default function RegisterPage() {
               value={form.password}
               onChange={update('password')}
               required
-              minLength={8}
+              minLength={10}
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters</p>
+            <p className="text-xs text-muted-foreground">Min 10 chars, uppercase, lowercase, and number</p>
           </div>
 
           <div className="flex flex-col gap-2">

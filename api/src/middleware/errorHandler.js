@@ -1,28 +1,24 @@
 'use strict';
 
-// 404 handler — reached when no route matched.
-function notFound(req, res, next) {
+function notFound(req, res, _next) {
   res.status(404).json({
-    error: {
-      message: `Not Found - ${req.method} ${req.originalUrl}`,
-    },
+    error: { message: `Not Found - ${req.method} ${req.originalUrl}` },
   });
 }
 
-// Centralized error handler. Express identifies it by its 4 arguments.
 // eslint-disable-next-line no-unused-vars
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   const status = err.status || err.statusCode || 500;
 
   if (status >= 500) {
-    // Log server errors for diagnosis; client errors are expected noise.
     console.error(err);
   }
 
+  // ponytail: never leak internal error details to client
+  const message = status >= 500 ? 'Internal Server Error' : (err.message || 'Something went wrong');
+
   res.status(status).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-    },
+    error: { message },
   });
 }
 

@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
       setValidationError('Passwords do not match');
       return;
     }
-    if (newPassword.length < 8) {
+    if (newPassword.length < 10) {
       setValidationError('Password must be at least 8 characters');
       return;
     }
@@ -92,9 +92,9 @@ export default function ResetPasswordPage() {
                 setValidationError('');
               }}
               required
-              minLength={8}
+              minLength={10}
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters</p>
+            <p className="text-xs text-muted-foreground">Min 10 chars, uppercase, lowercase, and number</p>
           </div>
 
           <div className="flex flex-col gap-2">
