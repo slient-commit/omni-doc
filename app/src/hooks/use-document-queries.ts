@@ -23,6 +23,7 @@ export function useDocument(id: string) {
     queryKey: ['documents', id],
     queryFn: () => api.get<Document>(`/documents/${id}`).then((r) => r.data),
     enabled: !!id,
+    retry: false,
   });
 }
 

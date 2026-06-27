@@ -15,6 +15,7 @@ export function useFolder(id: number | string) {
     queryKey: ['folders', id],
     queryFn: () => api.get<Folder>(`/folders/${id}`).then((r) => r.data),
     enabled: !!id,
+    retry: false,
   });
 }
 
