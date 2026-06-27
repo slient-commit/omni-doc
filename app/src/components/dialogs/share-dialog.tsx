@@ -1,41 +1,23 @@
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useUsers } from "@/hooks/use-user-queries";
 import {
-  useCreateDocumentInvite,
-  useDeleteDocumentInvite,
-  useCreateFolderInvite,
-  useDeleteFolderInvite,
-  useCreateShareLink,
-  useShareLinks,
-  useDeleteShareLink,
+  useCreateDocumentInvite, useDeleteDocumentInvite,
+  useCreateFolderInvite, useDeleteFolderInvite,
+  useCreateShareLink, useShareLinks, useDeleteShareLink,
 } from "@/hooks/use-sharing-queries";
 import { useDocument } from "@/hooks/use-document-queries";
 import { useFolder } from "@/hooks/use-folder-queries";
 import {
-  CopyIcon,
-  LinkIcon,
-  Loader2Icon,
-  ShareIcon,
-  Trash2Icon,
-  UserPlusIcon,
+  CopyIcon, LinkIcon, Loader2Icon, ShareIcon, Trash2Icon,
+  UserPlusIcon, Globe, Lock,
 } from "lucide-react";
 
 interface ShareDialogProps {
@@ -45,16 +27,15 @@ interface ShareDialogProps {
   id: number | string;
 }
 
-export function ShareDialog({
-  open,
-  onOpenChange,
-  type,
-  id,
-}: ShareDialogProps) {
+export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [permission, setPermission] = useState<string>("view");
+  const [permission, setPermission] = useState("view");
   const [copied, setCopied] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkType, setLinkType] = useState<"public" | "private">("public");
+  const [linkPassword, setLinkPassword] = useState("");
+  const [linkExpiry, setLinkExpiry] = useState("");
 
   const { data: users } = useUsers();
   const { data: shareLinks } = useShareLinks();
@@ -68,230 +49,254 @@ export function ShareDialog({
   const createShareLink = useCreateShareLink();
   const deleteShareLink = useDeleteShareLink();
 
-  const inviteMutation =
-    type === "document" ? createDocInvite : createFolderInvite;
+  const inviteMutation = type === "document" ? createDocInvite : createFolderInvite;
 
-  // Get existing invites from the resource detail
-  const existingInvites =
+  const existingInvites = type === "document"
+    ? (document as any)?.documentInvites ?? []
+    : (folder as any)?.folderInvites ?? [];
+
+  // Match share links by uuid
+  const existingLinks = shareLinks?.filter((link) =>
     type === "document"
-      ? (document as any)?.documentInvites ?? []
-      : (folder as any)?.folderInvites ?? [];
+      ? (link as any).document?.uuid === id || link.documentId === id
+      : (link as any).folder?.uuid === id || link.folderId === id
+  ) ?? [];
 
-  // Find share link for this resource
-  const existingLink = shareLinks?.find((link) =>
-    type === "document" ? link.documentId === id : link.folderId === id
+  const filteredUsers = users?.filter((u) =>
+    u.isActive &&
+    !existingInvites.some((inv: any) => inv.invitedUser?.id === u.id) &&
+    (u.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const filteredUsers = users?.filter(
-    (u) =>
-      u.isActive &&
-      (u.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const handleInvite = () => {
+  function handleInvite() {
     if (!selectedUserId) return;
-
-    const payload =
-      type === "document"
-        ? { documentId: id, invitedUserId: selectedUserId, permission }
-        : { folderId: id, invitedUserId: selectedUserId, permission };
-
+    const payload = type === "document"
+      ? { documentId: id, invitedUserId: selectedUserId, permission }
+      : { folderId: id, invitedUserId: selectedUserId, permission };
     inviteMutation.mutate(payload as any, {
+      onSuccess: () => { setSelectedUserId(null); setSearchQuery(""); },
+    });
+  }
+
+  function handleRemoveInvite(inviteId: number) {
+    if (type === "document") deleteDocInvite.mutate({ documentId: id, inviteId });
+    else deleteFolderInvite.mutate({ folderId: id, inviteId });
+  }
+
+  function handleCreateLink() {
+    const data: any = type === "document" ? { documentId: id } : { folderId: id };
+    if (linkExpiry) data.expiresAt = new Date(linkExpiry).toISOString();
+    if (linkType === "private" && linkPassword) data.password = linkPassword;
+    createShareLink.mutate(data, {
       onSuccess: () => {
-        setSelectedUserId(null);
-        setSearchQuery("");
+        setLinkModalOpen(false);
+        setLinkPassword("");
+        setLinkExpiry("");
       },
     });
-  };
+  }
 
-  const handleRemoveInvite = (inviteId: number) => {
-    if (type === "document") {
-      deleteDocInvite.mutate({ documentId: id, inviteId });
-    } else {
-      deleteFolderInvite.mutate({ folderId: id, inviteId });
-    }
-  };
-
-  const handleCreateLink = () => {
-    const data =
-      type === "document" ? { documentId: id } : { folderId: id };
-    createShareLink.mutate(data);
-  };
-
-  const handleCopyLink = async () => {
-    if (!existingLink) return;
-    const url = `${window.location.origin}/shared/${existingLink.token}`;
-    await navigator.clipboard.writeText(url);
+  async function handleCopyLink(token: string) {
+    await navigator.clipboard.writeText(`${window.location.origin}/shared/${token}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShareIcon className="size-4" />
-            Share {type === "folder" ? "Folder" : "Document"}
-          </DialogTitle>
-          <DialogDescription>
-            Invite users or create a public share link.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShareIcon className="size-4" />
+              Share {type === "folder" ? "Folder" : "Document"}
+            </DialogTitle>
+            <DialogDescription>Invite users or create a share link.</DialogDescription>
+          </DialogHeader>
 
-        {/* Invite users section */}
-        <div className="grid gap-3">
-          <Label className="text-sm font-medium">
-            <UserPlusIcon className="size-4" />
-            Invite users
-          </Label>
+          {/* Invite users */}
+          <div className="grid gap-3">
+            <Label className="flex items-center gap-1 text-sm font-medium">
+              <UserPlusIcon className="size-4" /> Invite users
+            </Label>
 
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Select value={permission} onValueChange={(v) => { if (v) setPermission(v); }}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="view">View</SelectItem>
-                <SelectItem value="edit">Edit</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* User search results */}
-          {searchQuery && filteredUsers && filteredUsers.length > 0 && (
-            <div className="max-h-32 overflow-y-auto rounded-lg border">
-              {filteredUsers.slice(0, 5).map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted"
-                  onClick={() => {
-                    setSelectedUserId(user.id);
-                    setSearchQuery(
-                      `${user.firstName} ${user.lastName}`
-                    );
-                  }}
-                >
-                  <span>
-                    {user.firstName} {user.lastName}
-                  </span>
-                  <span className="text-muted-foreground">{user.email}</span>
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              <select
+                value={permission}
+                onChange={(e) => setPermission(e.target.value)}
+                className="h-9 rounded-md border bg-background px-2 text-sm"
+              >
+                <option value="view">View</option>
+                <option value="edit">Edit</option>
+              </select>
             </div>
-          )}
 
-          {selectedUserId && (
-            <Button
-              size="sm"
-              onClick={handleInvite}
-              disabled={inviteMutation.isPending}
-            >
-              {inviteMutation.isPending && (
-                <Loader2Icon className="size-4 animate-spin" />
-              )}
-              Send invite
-            </Button>
-          )}
-
-          {/* Current invites */}
-          {existingInvites.length > 0 && (
-            <div className="grid gap-1">
-              {existingInvites.map(
-                (invite: {
-                  id: number;
-                  permission: string;
-                  invitedUser: {
-                    id: number;
-                    firstName: string;
-                    lastName: string;
-                    email: string;
-                  };
-                }) => (
-                  <div
-                    key={invite.id}
-                    className="flex items-center justify-between rounded-lg border px-3 py-1.5"
+            {searchQuery && filteredUsers && filteredUsers.length > 0 && (
+              <div className="max-h-32 overflow-y-auto rounded-lg border">
+                {filteredUsers.slice(0, 5).map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    className={`flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted ${selectedUserId === user.id ? 'bg-accent' : ''}`}
+                    onClick={() => { setSelectedUserId(user.id); setSearchQuery(`${user.firstName} ${user.lastName}`); }}
                   >
+                    <span>{user.firstName} {user.lastName}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedUserId && (
+              <Button size="sm" onClick={handleInvite} disabled={inviteMutation.isPending}>
+                {inviteMutation.isPending && <Loader2Icon className="size-4 animate-spin" />}
+                Send invite
+              </Button>
+            )}
+
+            {inviteMutation.isError && (
+              <p className="text-xs text-destructive">{inviteMutation.error?.message}</p>
+            )}
+
+            {existingInvites.length > 0 && (
+              <div className="grid gap-1">
+                {existingInvites.map((invite: any) => (
+                  <div key={invite.id} className="flex items-center justify-between rounded-lg border px-3 py-1.5">
                     <div className="flex items-center gap-2 text-sm">
-                      <span>
-                        {invite.invitedUser.firstName}{" "}
-                        {invite.invitedUser.lastName}
-                      </span>
+                      <span>{invite.invitedUser.firstName} {invite.invitedUser.lastName}</span>
                       <Badge variant="secondary">{invite.permission}</Badge>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
+                    <button
+                      className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                       onClick={() => handleRemoveInvite(invite.id)}
                     >
                       <Trash2Icon className="size-3" />
-                    </Button>
+                    </button>
                   </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Public link section */}
-        <div className="grid gap-3 border-t pt-3">
-          <Label className="text-sm font-medium">
-            <LinkIcon className="size-4" />
-            Public link
-          </Label>
+          {/* Share links */}
+          <div className="grid gap-3 border-t pt-3">
+            <Label className="flex items-center gap-1 text-sm font-medium">
+              <LinkIcon className="size-4" /> Share links
+            </Label>
 
-          {existingLink ? (
-            <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                value={`${window.location.origin}/shared/${existingLink.token}`}
-                className="flex-1 text-xs"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyLink}
-              >
-                <CopyIcon className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => deleteShareLink.mutate(existingLink.id)}
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={handleCreateLink}
-              disabled={createShareLink.isPending}
-            >
-              {createShareLink.isPending && (
-                <Loader2Icon className="size-4 animate-spin" />
-              )}
-              <LinkIcon className="size-4" />
-              Create share link
+            {existingLinks.map((link) => (
+              <div key={link.id} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    {link.password ? <Lock className="size-3 text-muted-foreground" /> : <Globe className="size-3 text-muted-foreground" />}
+                    <span className="truncate text-xs text-muted-foreground">
+                      {link.password ? 'Private' : 'Public'}
+                      {link.expiresAt && ` · expires ${new Date(link.expiresAt).toLocaleDateString()}`}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent"
+                  onClick={() => handleCopyLink(link.token)}
+                  title="Copy link"
+                >
+                  <CopyIcon className="size-3.5" />
+                </button>
+                <button
+                  className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
+                  onClick={() => deleteShareLink.mutate(link.id)}
+                  title="Delete link"
+                >
+                  <Trash2Icon className="size-3.5" />
+                </button>
+              </div>
+            ))}
+
+            <Button variant="outline" size="sm" onClick={() => { setLinkModalOpen(true); setLinkType("public"); setLinkPassword(""); setLinkExpiry(""); }}>
+              <LinkIcon className="size-4" /> Create share link
             </Button>
+
+            {copied && <p className="text-xs text-green-600">Link copied!</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create link modal */}
+      <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Create Share Link</DialogTitle>
+            <DialogDescription>Choose link type and settings.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="flex gap-2">
+              <button
+                className={`flex flex-1 cursor-pointer flex-col items-center gap-1 rounded-lg border p-3 transition-colors ${linkType === 'public' ? 'border-primary bg-accent' : 'hover:bg-muted/50'}`}
+                onClick={() => { setLinkType("public"); setLinkPassword(""); }}
+              >
+                <Globe className="size-5" />
+                <span className="text-sm font-medium">Public</span>
+                <span className="text-xs text-muted-foreground">Anyone with the link</span>
+              </button>
+              <button
+                className={`flex flex-1 cursor-pointer flex-col items-center gap-1 rounded-lg border p-3 transition-colors ${linkType === 'private' ? 'border-primary bg-accent' : 'hover:bg-muted/50'}`}
+                onClick={() => setLinkType("private")}
+              >
+                <Lock className="size-5" />
+                <span className="text-sm font-medium">Private</span>
+                <span className="text-xs text-muted-foreground">Password protected</span>
+              </button>
+            </div>
+
+            {linkType === "private" && (
+              <div className="grid gap-2">
+                <Label htmlFor="link-password">Password</Label>
+                <Input
+                  id="link-password"
+                  type="password"
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="link-expiry">Expires at (optional)</Label>
+              <Input
+                id="link-expiry"
+                type="datetime-local"
+                value={linkExpiry}
+                onChange={(e) => setLinkExpiry(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {createShareLink.isError && (
+            <p className="text-xs text-destructive">{createShareLink.error?.message}</p>
           )}
 
-          {copied && (
-            <p className="text-xs text-muted-foreground">
-              Link copied to clipboard!
-            </p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleCreateLink}
+              disabled={createShareLink.isPending || (linkType === "private" && !linkPassword)}
+            >
+              {createShareLink.isPending && <Loader2Icon className="size-4 animate-spin" />}
+              Create link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -3,14 +3,30 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const { generateToken } = require('../lib/token');
+const { sendVerificationEmail } = require('../lib/email'); // ponytail: reuse for invite notification
+
+// ponytail: resolve uuid to numeric id
+async function resolveDocId(identifier) {
+  if (!identifier) return null;
+  const num = Number(identifier);
+  if (Number.isInteger(num)) return num;
+  const doc = await prisma.document.findUnique({ where: { uuid: identifier }, select: { id: true } });
+  return doc?.id ?? null;
+}
+
+async function resolveFolderId(identifier) {
+  if (!identifier) return null;
+  const num = Number(identifier);
+  if (Number.isInteger(num)) return num;
+  const folder = await prisma.folder.findUnique({ where: { uuid: identifier }, select: { id: true } });
+  return folder?.id ?? null;
+}
 
 // --- Document Invites ---
 
 async function createDocumentInvite({ documentId, invitedUserId, permission, invitedById, organizationId }) {
-  const document = await prisma.document.findFirst({
-    where: { id: documentId, organizationId, deletedAt: null },
-  });
-  if (!document) {
+  const resolvedDocId = await resolveDocId(documentId);
+  if (!resolvedDocId) {
     const err = new Error('Document not found');
     err.status = 404;
     throw err;
@@ -26,16 +42,16 @@ async function createDocumentInvite({ documentId, invitedUserId, permission, inv
   }
 
   const existing = await prisma.documentInvite.findFirst({
-    where: { documentId, invitedUserId },
+    where: { documentId: resolvedDocId, invitedUserId },
   });
   if (existing) {
-    const err = new Error('User already has access to this document');
+    const err = new Error('User already has access');
     err.status = 409;
     throw err;
   }
 
   return prisma.documentInvite.create({
-    data: { documentId, invitedUserId, permission, invitedById },
+    data: { documentId: resolvedDocId, invitedUserId, permission, invitedById },
     include: {
       invitedUser: { select: { id: true, firstName: true, lastName: true, email: true } },
     },
@@ -52,7 +68,6 @@ async function deleteDocumentInvite({ inviteId, organizationId }) {
     err.status = 404;
     throw err;
   }
-
   await prisma.documentInvite.delete({ where: { id: inviteId } });
   return { message: 'Invite removed' };
 }
@@ -60,10 +75,8 @@ async function deleteDocumentInvite({ inviteId, organizationId }) {
 // --- Folder Invites ---
 
 async function createFolderInvite({ folderId, invitedUserId, permission, invitedById, organizationId }) {
-  const folder = await prisma.folder.findFirst({
-    where: { id: folderId, organizationId, deletedAt: null },
-  });
-  if (!folder) {
+  const resolvedFolderId = await resolveFolderId(folderId);
+  if (!resolvedFolderId) {
     const err = new Error('Folder not found');
     err.status = 404;
     throw err;
@@ -79,16 +92,16 @@ async function createFolderInvite({ folderId, invitedUserId, permission, invited
   }
 
   const existing = await prisma.folderInvite.findFirst({
-    where: { folderId, invitedUserId },
+    where: { folderId: resolvedFolderId, invitedUserId },
   });
   if (existing) {
-    const err = new Error('User already has access to this folder');
+    const err = new Error('User already has access');
     err.status = 409;
     throw err;
   }
 
   return prisma.folderInvite.create({
-    data: { folderId, invitedUserId, permission, invitedById },
+    data: { folderId: resolvedFolderId, invitedUserId, permission, invitedById },
     include: {
       invitedUser: { select: { id: true, firstName: true, lastName: true, email: true } },
     },
@@ -105,7 +118,6 @@ async function deleteFolderInvite({ inviteId, organizationId }) {
     err.status = 404;
     throw err;
   }
-
   await prisma.folderInvite.delete({ where: { id: inviteId } });
   return { message: 'Invite removed' };
 }
@@ -114,18 +126,21 @@ async function deleteFolderInvite({ inviteId, organizationId }) {
 
 async function createShareLink({ documentId, folderId, password, expiresAt, createdById }) {
   const token = generateToken();
-  const data = {
-    token,
-    createdById,
-    expiresAt: expiresAt ? new Date(expiresAt) : null,
-  };
+  const data = { token, createdById };
 
-  if (documentId) data.documentId = documentId;
-  if (folderId) data.folderId = folderId;
-
-  if (password) {
-    data.passwordHash = await bcrypt.hash(password, 12);
+  if (documentId) {
+    const resolved = await resolveDocId(documentId);
+    if (!resolved) { const err = new Error('Document not found'); err.status = 404; throw err; }
+    data.documentId = resolved;
   }
+  if (folderId) {
+    const resolved = await resolveFolderId(folderId);
+    if (!resolved) { const err = new Error('Folder not found'); err.status = 404; throw err; }
+    data.folderId = resolved;
+  }
+
+  if (expiresAt) data.expiresAt = new Date(expiresAt);
+  if (password) data.password = await bcrypt.hash(password, 12);
 
   return prisma.shareLink.create({ data });
 }
@@ -135,22 +150,19 @@ async function listShareLinks({ createdById }) {
     where: { createdById },
     orderBy: { createdAt: 'desc' },
     include: {
-      document: { select: { id: true, originalName: true } },
-      folder: { select: { id: true, name: true } },
+      document: { select: { id: true, uuid: true, originalName: true } },
+      folder: { select: { id: true, uuid: true, name: true } },
     },
   });
 }
 
 async function deleteShareLink({ id, createdById }) {
-  const link = await prisma.shareLink.findFirst({
-    where: { id, createdById },
-  });
+  const link = await prisma.shareLink.findFirst({ where: { id, createdById } });
   if (!link) {
     const err = new Error('Share link not found');
     err.status = 404;
     throw err;
   }
-
   await prisma.shareLink.delete({ where: { id } });
   return { message: 'Share link deleted' };
 }
@@ -174,7 +186,6 @@ async function accessShareLink({ token, password }) {
               document: {
                 include: {
                   createdBy: { select: { id: true, firstName: true, lastName: true } },
-                  category: true,
                 },
               },
             },
@@ -196,13 +207,9 @@ async function accessShareLink({ token, password }) {
     throw err;
   }
 
-  if (link.passwordHash) {
-    if (!password) {
-      const err = new Error('Password required');
-      err.status = 401;
-      throw err;
-    }
-    const valid = await bcrypt.compare(password, link.passwordHash);
+  if (link.password) {
+    if (!password) return { passwordRequired: true };
+    const valid = await bcrypt.compare(password, link.password);
     if (!valid) {
       const err = new Error('Invalid password');
       err.status = 401;
@@ -210,19 +217,13 @@ async function accessShareLink({ token, password }) {
     }
   }
 
-  return {
-    document: link.document || null,
-    folder: link.folder || null,
-  };
+  if (link.document) return { type: 'document', document: link.document };
+  if (link.folder) return { type: 'folder', folder: link.folder };
+  return { type: 'unknown' };
 }
 
 module.exports = {
-  createDocumentInvite,
-  deleteDocumentInvite,
-  createFolderInvite,
-  deleteFolderInvite,
-  createShareLink,
-  listShareLinks,
-  deleteShareLink,
-  accessShareLink,
+  createDocumentInvite, deleteDocumentInvite,
+  createFolderInvite, deleteFolderInvite,
+  createShareLink, listShareLinks, deleteShareLink, accessShareLink,
 };
