@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import {
   FolderOpen, Shield, Users, Share2, FileText, Lock,
   Archive, ArrowRight, CheckCircle2,
-  Zap, Globe, Eye, ExternalLink,
+  Zap, Globe, Eye,
 } from 'lucide-react';
 
 // ponytail: lucide doesn't export Github icon in this version — inline SVG
