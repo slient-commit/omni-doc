@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMyPermissions } from "@/hooks/use-role-queries";
@@ -16,7 +17,17 @@ export default function SettingsLayout() {
     hasPerm('read', 'role') && { value: "/settings/roles", label: "Roles", icon: Shield },
   ].filter(Boolean) as { value: string; label: string; icon: typeof Settings }[];
 
-  const activeTab = tabs.find((t) => t.value === location.pathname)?.value ?? tabs[0]?.value;
+  const currentTabAllowed = tabs.some((t) => t.value === location.pathname);
+  const firstAllowedTab = tabs[0]?.value;
+
+  // ponytail: redirect to first allowed tab if current route isn't permitted
+  useEffect(() => {
+    if (myPerms && !currentTabAllowed && firstAllowedTab) {
+      navigate(firstAllowedTab, { replace: true });
+    }
+  }, [myPerms, currentTabAllowed, firstAllowedTab, navigate]);
+
+  const activeTab = tabs.find((t) => t.value === location.pathname)?.value ?? firstAllowedTab;
 
   return (
     <div className="flex flex-1 flex-col gap-6">
