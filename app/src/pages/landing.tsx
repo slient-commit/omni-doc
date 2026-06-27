@@ -2,9 +2,18 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import {
   FolderOpen, Shield, Users, Share2, FileText, Lock,
-  Archive, Search, ArrowRight, Github, CheckCircle2,
-  Zap, Globe, Eye,
+  Archive, ArrowRight, CheckCircle2,
+  Zap, Globe, Eye, ExternalLink,
 } from 'lucide-react';
+
+// ponytail: lucide doesn't export Github icon in this version — inline SVG
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  );
+}
 
 const FEATURES = [
   { icon: FolderOpen, title: 'File Explorer Interface', desc: 'Navigate files and folders with a familiar desktop-like experience. Grid and list views, breadcrumbs, and context menus.' },
@@ -43,7 +52,7 @@ export default function LandingPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Github className="size-4" /> GitHub
+              <GithubIcon className="size-4" /> GitHub
             </a>
             <Link to="/login">
               <Button variant="ghost" size="sm">Sign in</Button>
@@ -81,7 +90,7 @@ export default function LandingPage() {
             </Link>
             <a href="https://github.com/slient-commit/omni-doc" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="lg" className="h-12 px-8 text-base">
-                <Github className="size-4" /> Star on GitHub
+                <GithubIcon className="size-4" /> Star on GitHub
               </Button>
             </a>
           </div>
@@ -194,7 +203,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <a href="https://github.com/slient-commit/omni-doc" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
-              <Github className="size-4" />
+              <GithubIcon className="size-4" />
             </a>
             <span>&copy; {new Date().getFullYear()} Omni Doc</span>
           </div>
