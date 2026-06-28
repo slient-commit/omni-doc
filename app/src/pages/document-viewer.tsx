@@ -34,7 +34,7 @@ function isOfficeFile(mimeType: string | null): boolean {
 
 // ponytail: MS Office online viewer via pre-signed URL
 // Creates a presign token on mount, revokes on unmount
-function OfficeViewer({ docId, docUuid }: { docId: string; docUuid: string }) {
+function OfficeViewer({ docUuid }: { docUuid: string }) {
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   const createPresign = useCreatePresign();
@@ -130,7 +130,7 @@ export default function DocumentViewerPage() {
       {canPreview ? (
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30" style={{ minHeight: '600px' }}>
           {isOfficeFile(doc.mimeType) ? (
-            <OfficeViewer docId={String(doc.id)} docUuid={doc.uuid} />
+            <OfficeViewer docUuid={doc.uuid} />
           ) : doc.mimeType?.startsWith('image/') ? (
             <div className="flex h-full items-center justify-center p-4">
               <img src={previewUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
