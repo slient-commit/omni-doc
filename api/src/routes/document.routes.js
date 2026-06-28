@@ -72,5 +72,15 @@ router.post('/:id/copy',
   ctrl.copyToFolder,
 );
 
+// ponytail: pre-signed URL for MS Office online viewer
+router.post('/:id/presign',
+  checkPermission('read', 'document'),
+  validate([param('id').notEmpty()]),
+  ctrl.createPresign,
+);
+
+router.delete('/:id/presign/:token',
+  ctrl.revokePresign,
+);
 
 module.exports = router;

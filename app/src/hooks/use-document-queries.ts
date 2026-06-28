@@ -124,3 +124,18 @@ export function useMoveDocument() {
     },
   });
 }
+
+// ponytail: pre-signed URL for MS Office online viewer
+export function useCreatePresign() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ token: string; url: string }>(`/documents/${id}/presign`).then((r) => r.data),
+  });
+}
+
+export function useRevokePresign() {
+  return useMutation({
+    mutationFn: ({ id, token }: { id: string; token: string }) =>
+      api.delete(`/documents/${id}/presign/${token}`).then((r) => r.data),
+  });
+}

@@ -1,10 +1,20 @@
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { useDocument } from '@/hooks/use-document-queries';
+import { useDocument, useCreatePresign, useRevokePresign } from '@/hooks/use-document-queries';
 import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Download, Loader2, ShieldAlert } from 'lucide-react';
+
+const OFFICE_MIMES = new Set([
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-powerpoint',
+]);
 
 function isPreviewable(mimeType: string | null): boolean {
   if (!mimeType) return false;
@@ -13,8 +23,50 @@ function isPreviewable(mimeType: string | null): boolean {
     mimeType.startsWith('image/') ||
     mimeType.startsWith('text/') ||
     mimeType.startsWith('video/') ||
-    mimeType.startsWith('audio/')
+    mimeType.startsWith('audio/') ||
+    OFFICE_MIMES.has(mimeType)
   );
+}
+
+function isOfficeFile(mimeType: string | null): boolean {
+  return !!mimeType && OFFICE_MIMES.has(mimeType);
+}
+
+// ponytail: MS Office online viewer via pre-signed URL
+// Creates a presign token on mount, revokes on unmount
+function OfficeViewer({ docId, docUuid }: { docId: string; docUuid: string }) {
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const tokenRef = useRef<string | null>(null);
+  const createPresign = useCreatePresign();
+  const revokePresign = useRevokePresign();
+
+  useEffect(() => {
+    createPresign.mutate(docUuid, {
+      onSuccess: (data) => {
+        tokenRef.current = data.token;
+        const encoded = encodeURIComponent(data.url);
+        setViewerUrl(`https://view.officeapps.live.com/op/embed.aspx?src=${encoded}`);
+      },
+    });
+
+    return () => {
+      // Revoke presign token on unmount
+      if (tokenRef.current) {
+        revokePresign.mutate({ id: docUuid, token: tokenRef.current });
+        tokenRef.current = null;
+      }
+    };
+  }, [docUuid]);
+
+  if (!viewerUrl) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return <iframe src={viewerUrl} title="Office Viewer" className="h-full w-full min-h-[600px]" />;
 }
 
 export default function DocumentViewerPage() {
@@ -77,7 +129,9 @@ export default function DocumentViewerPage() {
 
       {canPreview ? (
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30" style={{ minHeight: '600px' }}>
-          {doc.mimeType?.startsWith('image/') ? (
+          {isOfficeFile(doc.mimeType) ? (
+            <OfficeViewer docId={String(doc.id)} docUuid={doc.uuid} />
+          ) : doc.mimeType?.startsWith('image/') ? (
             <div className="flex h-full items-center justify-center p-4">
               <img src={previewUrl} alt={doc.originalName} className="max-h-full max-w-full object-contain" />
             </div>

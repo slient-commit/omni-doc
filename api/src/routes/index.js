@@ -21,6 +21,10 @@ router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/shared', publicShareRoutes);
 
+// ponytail: public pre-signed document download (for MS Office viewer)
+const { publicDocDownload } = require('../controllers/document.controller');
+router.get('/public/doc/:token', publicDocDownload);
+
 router.get('/', (req, res) => {
   res.json({ message: 'Omni Doc API', version: '1.0.0', trashRetentionDays: config.trashRetentionDays });
 });

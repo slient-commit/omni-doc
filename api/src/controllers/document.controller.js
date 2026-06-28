@@ -159,4 +159,56 @@ async function uploadZip(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip };
+// ponytail: create a pre-signed public URL for MS Office viewer
+async function createPresign(req, res, next) {
+  try {
+    const presign = require('../lib/presign');
+    const config = require('../config');
+
+    const doc = await documentService.getById({
+      id: req.params.id,
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+    });
+
+    const token = presign.create(doc.id);
+    const publicUrl = `${config.appUrl}/api/public/doc/${token}`;
+
+    res.json({ token, url: publicUrl });
+  } catch (err) { next(err); }
+}
+
+async function revokePresign(req, res, next) {
+  try {
+    const presign = require('../lib/presign');
+    presign.revoke(req.params.token);
+    res.json({ message: 'Revoked' });
+  } catch (err) { next(err); }
+}
+
+// Public — no auth, serves file via presign token
+async function publicDocDownload(req, res, next) {
+  try {
+    const presign = require('../lib/presign');
+    const documentId = presign.verify(req.params.token);
+    if (!documentId) {
+      return res.status(404).json({ error: { message: 'Link expired or invalid' } });
+    }
+
+    const prisma = require('../lib/prisma');
+    const { resolveFilePath } = require('../lib/filePath');
+
+    const doc = await prisma.document.findUnique({
+      where: { id: documentId },
+      include: { organization: { select: { storagePath: true } } },
+    });
+    if (!doc) {
+      return res.status(404).json({ error: { message: 'Document not found' } });
+    }
+
+    const absolutePath = resolveFilePath(doc.organization.storagePath, doc.filePath);
+    res.download(absolutePath, doc.originalName);
+  } catch (err) { next(err); }
+}
+
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, createPresign, revokePresign, publicDocDownload };
