@@ -32,80 +32,94 @@ function isOfficeFile(mimeType: string | null): boolean {
   return !!mimeType && OFFICE_MIMES.has(mimeType);
 }
 
-// ponytail: ONLYOFFICE viewer — loads the JS API, mounts the editor, destroys on unmount
+// ponytail: ONLYOFFICE integration per official docs
+// 1. Load api.js with ?shardkey= (v8.1+)
+// 2. Create DocEditor on placeholder div
+// 3. Destroy on unmount to prevent zombie WebSockets
 function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
   const editorRef = useRef<{ destroyEditor?: () => void } | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [scriptReady, setScriptReady] = useState(false);
   const { data, isLoading, isError, error } = useEditorConfig(id, isOfficeFile(mimeType));
 
-  // Step 1: load the ONLYOFFICE api.js script once
+  // Load the ONLYOFFICE api.js script
   useEffect(() => {
     if (!data) return;
 
-    const scriptId = 'onlyoffice-api-script';
-    const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    if (existing) {
-      // @ts-expect-error — ONLYOFFICE global
-      if (window.DocsAPI) {
-        setScriptLoaded(true);
-      } else {
-        existing.addEventListener('load', () => setScriptLoaded(true), { once: true });
-        existing.addEventListener('error', () => setEditorError('Failed to load ONLYOFFICE editor'), { once: true });
-      }
+    // @ts-expect-error — ONLYOFFICE global
+    if (window.DocsAPI) {
+      setScriptReady(true);
       return;
     }
 
-    const script = document.createElement('script');
+    const scriptId = 'onlyoffice-api-script';
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+    if (script) {
+      // Script tag exists but not loaded yet — wait for it
+      const onLoad = () => setScriptReady(true);
+      const onError = () => setEditorError('Failed to load ONLYOFFICE editor');
+      script.addEventListener('load', onLoad, { once: true });
+      script.addEventListener('error', onError, { once: true });
+      return () => {
+        script?.removeEventListener('load', onLoad);
+        script?.removeEventListener('error', onError);
+      };
+    }
+
+    // ponytail: v8.1+ shardkey parameter for load balancing
+    const shardkey = data.documentKey || '';
+    script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${data.onlyofficeUrl}/web-apps/apps/api/documents/api.js`;
+    script.src = `${data.onlyofficeUrl}/web-apps/apps/api/documents/api.js?shardkey=${encodeURIComponent(shardkey)}`;
     script.async = true;
-    script.onload = () => setScriptLoaded(true);
-    script.onerror = () => setEditorError('Failed to load ONLYOFFICE editor. Check that the server is reachable.');
+    script.onload = () => setScriptReady(true);
+    script.onerror = () => setEditorError('Failed to load ONLYOFFICE editor. Check that the Document Server is reachable.');
     document.head.appendChild(script);
   }, [data]);
 
-  // Step 2: init editor after script is loaded and config is ready
+  // Initialize the editor once script + config are ready
   useEffect(() => {
     // @ts-expect-error — ONLYOFFICE global
-    if (!scriptLoaded || !data || !window.DocsAPI || editorRef.current) return;
+    if (!scriptReady || !data || !window.DocsAPI) return;
+    if (editorRef.current) return;
 
     try {
       const config = {
         ...data.config,
         height: '100%',
         width: '100%',
+        type: 'desktop',
         events: {
-          onError: (event: { data: number }) => {
-            const codes: Record<number, string> = {
-              [-1]: 'Unknown error',
-              [-2]: 'Network error — ONLYOFFICE cannot download the file',
-              [-3]: 'Server connection error',
-              [-4]: 'File not found by ONLYOFFICE server',
-              [-7]: 'Download error — check that APP_URL is reachable from ONLYOFFICE',
+          onError: (event: { data?: number | string }) => {
+            const code = event.data;
+            const messages: Record<string, string> = {
+              '-2': 'Network error — ONLYOFFICE cannot download the file from your server',
+              '-3': 'Connection to ONLYOFFICE server lost',
+              '-4': 'File not found — the download URL may be unreachable from ONLYOFFICE',
+              '-7': 'Download error — ensure APP_URL is accessible from the ONLYOFFICE container',
+              '-8': 'Token validation error — check ONLYOFFICE_JWT_SECRET matches',
             };
-            setEditorError(codes[event.data] || `ONLYOFFICE error code: ${event.data}`);
+            const msg = messages[String(code)] || `ONLYOFFICE error (code: ${code})`;
+            setEditorError(msg);
           },
           onDocumentReady: () => {
-            setEditorError(null); // clear any transient errors
+            setEditorError(null);
           },
         },
       };
 
       // @ts-expect-error — ONLYOFFICE global
-      editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-editor', config);
+      editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-placeholder', config);
     } catch (e) {
-      setEditorError(e instanceof Error ? e.message : 'Failed to initialize editor');
+      setEditorError(e instanceof Error ? e.message : 'Failed to initialize ONLYOFFICE editor');
     }
-  }, [scriptLoaded, data]);
+  }, [scriptReady, data]);
 
-  // Cleanup: destroy editor on unmount to prevent memory leaks and zombie WebSockets
+  // Destroy editor on unmount — prevents memory leaks and zombie WebSocket connections
   useEffect(() => {
     return () => {
-      if (editorRef.current?.destroyEditor) {
-        try { editorRef.current.destroyEditor(); } catch { /* ignore */ }
-      }
+      try { editorRef.current?.destroyEditor?.(); } catch { /* ignore */ }
       editorRef.current = null;
     };
   }, []);
@@ -119,18 +133,17 @@ function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
   }
 
   if (isError) {
-    const msg = (error as Error)?.message || 'ONLYOFFICE is not configured';
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <AlertTriangle className="size-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">{msg}</p>
+        <p className="text-sm text-muted-foreground">{(error as Error)?.message || 'ONLYOFFICE is not configured'}</p>
       </div>
     );
   }
 
   if (editorError) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
         <AlertTriangle className="size-8 text-destructive/50" />
         <p className="max-w-md text-center text-sm text-muted-foreground">{editorError}</p>
         <p className="text-xs text-muted-foreground/70">Download the file to view it instead.</p>
@@ -138,7 +151,8 @@ function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
     );
   }
 
-  return <div id="onlyoffice-editor" className="h-full w-full" />;
+  // ponytail: this div is the placeholder per ONLYOFFICE docs — DocEditor renders into it
+  return <div id="onlyoffice-placeholder" className="h-full w-full" />;
 }
 
 export default function DocumentViewerPage() {

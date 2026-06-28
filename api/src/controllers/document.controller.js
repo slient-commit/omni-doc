@@ -159,11 +159,12 @@ async function uploadZip(req, res, next) {
   } catch (err) { next(err); }
 }
 
-// ponytail: ONLYOFFICE editor config — view-only mode with signed JWT
+// ponytail: ONLYOFFICE editor config — generates signed config per official docs
 async function getEditorConfig(req, res, next) {
   try {
     const config = require('../config');
     const jwt = require('jsonwebtoken');
+    const crypto = require('crypto');
 
     if (!config.onlyofficeUrl || !config.onlyofficeJwtSecret) {
       return res.status(501).json({ error: { message: 'ONLYOFFICE is not configured' } });
@@ -186,21 +187,25 @@ async function getEditorConfig(req, res, next) {
       return res.status(400).json({ error: { message: 'File type not supported by ONLYOFFICE' } });
     }
 
-    // Short-lived token for ONLYOFFICE to fetch the file (server-to-server)
+    // Short-lived token for ONLYOFFICE server-to-server file fetch
     const fileToken = jwt.sign(
       { userId: req.user.id, organizationId: req.user.organizationId },
       config.jwtSecret,
       { expiresIn: '1h' },
     );
 
+    // ponytail: key must be alphanumeric, max 128 chars, and change when file changes
+    // so ONLYOFFICE doesn't serve a cached old version
+    const keySource = `${doc.uuid}${new Date(doc.updatedAt).getTime()}`;
+    const documentKey = crypto.createHash('md5').update(keySource).digest('hex');
+
     const downloadUrl = `${config.appUrl}/api/documents/${doc.uuid}/download?token=${fileToken}`;
     const callbackUrl = `${config.appUrl}/api/documents/${doc.uuid}/onlyoffice-callback?token=${fileToken}`;
 
-    // ponytail: key must change when the file changes so ONLYOFFICE doesn't serve a cached version
     const editorConfig = {
       document: {
         fileType: ext,
-        key: `${doc.uuid}_${new Date(doc.updatedAt).getTime()}`,
+        key: documentKey,
         title: doc.originalName,
         url: downloadUrl,
         permissions: { edit: false, download: true, print: true },
@@ -220,41 +225,43 @@ async function getEditorConfig(req, res, next) {
     };
 
     // Sign the config for ONLYOFFICE JWT verification
-    const payload = {
-      document: editorConfig.document,
-      editorConfig: editorConfig.editorConfig,
-    };
-    const onlyofficeToken = jwt.sign(payload, config.onlyofficeJwtSecret);
+    const onlyofficeToken = jwt.sign(editorConfig, config.onlyofficeJwtSecret);
     editorConfig.token = onlyofficeToken;
 
     res.json({
       onlyofficeUrl: config.onlyofficeUrl,
+      documentKey, // ponytail: v8.1+ shardkey parameter
       config: editorConfig,
     });
   } catch (err) { next(err); }
 }
 
-// ponytail: ONLYOFFICE callback — called when user closes the editor or force-saves
-// Status codes: 1=editing, 2=ready to save, 4=close with no changes, 6=force save, 7=error
+// ponytail: ONLYOFFICE callback — called server-to-server when editing completes
+// Status codes: 1=editing, 2=ready to save, 4=close no changes, 6=force save, 7=error
 async function onlyofficeCallback(req, res, next) {
   try {
     const { status, url } = req.body;
 
-    // Status 2 (save after close) or 6 (force save) — download the edited file and replace ours
+    // Status 2 (save after close) or 6 (force save) — download edited file
     if ((status === 2 || status === 6) && url) {
       const fs = require('fs');
       const https = require('https');
       const http = require('http');
       const config = require('../config');
+      const prisma = require('../lib/prisma');
       const { resolveFilePath } = require('../lib/filePath');
+      const { resolveDocId, idOrUuidDoc } = require('../lib/resolveId');
 
-      const doc = await documentService.getById({
-        id: req.params.id,
-        userId: req.user.id,
-        organizationId: req.user.organizationId,
+      const resolvedId = await resolveDocId(req.params.id);
+      if (!resolvedId) return res.json({ error: 0 });
+
+      const doc = await prisma.document.findUnique({
+        where: { id: resolvedId },
+        include: { organization: { select: { storagePath: true } } },
       });
+      if (!doc) return res.json({ error: 0 });
 
-      const absolutePath = resolveFilePath(doc.organization?.storagePath || '', doc.filePath);
+      const absolutePath = resolveFilePath(doc.organization.storagePath, doc.filePath);
 
       // Download the edited file from ONLYOFFICE
       const client = url.startsWith('https') ? https : http;
@@ -271,19 +278,17 @@ async function onlyofficeCallback(req, res, next) {
         }).on('error', reject);
       });
 
-      // Update the document's timestamp so the key changes (bust ONLYOFFICE cache)
-      const prisma = require('../lib/prisma');
+      // Update timestamp so the document key changes (bust ONLYOFFICE cache)
       await prisma.document.update({
         where: { id: doc.id },
         data: { updatedAt: new Date() },
       });
     }
 
-    // ONLYOFFICE expects { "error": 0 } for success
     res.json({ error: 0 });
   } catch (err) {
     console.error('[onlyoffice-callback]', err.message);
-    res.json({ error: 0 }); // ponytail: always return 0 to avoid ONLYOFFICE retrying endlessly
+    res.json({ error: 0 }); // ponytail: always return 0 — retries cause infinite loops
   }
 }
 

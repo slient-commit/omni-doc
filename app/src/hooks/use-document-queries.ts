@@ -29,6 +29,7 @@ export function useDocument(id: string) {
 
 export interface EditorConfig {
   onlyofficeUrl: string;
+  documentKey: string;
   config: Record<string, unknown>;
 }
 
