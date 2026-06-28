@@ -78,4 +78,10 @@ router.get('/:id/editor-config',
   ctrl.getEditorConfig,
 );
 
+// ponytail: ONLYOFFICE callback — uses token query param for auth (server-to-server)
+router.post('/:id/onlyoffice-callback',
+  validate([param('id').notEmpty()]),
+  ctrl.onlyofficeCallback,
+);
+
 module.exports = router;

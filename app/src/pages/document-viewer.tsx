@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useDocument, useEditorConfig } from '@/hooks/use-document-queries';
 import { useAuth } from '@/contexts/auth-context';
 import { getDocumentIcon, formatFileSize, formatDate } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 const OFFICE_MIMES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -32,44 +32,83 @@ function isOfficeFile(mimeType: string | null): boolean {
   return !!mimeType && OFFICE_MIMES.has(mimeType);
 }
 
-// ponytail: loads ONLYOFFICE JS API and renders the editor in view-only mode
+// ponytail: ONLYOFFICE viewer — loads the JS API, mounts the editor, destroys on unmount
 function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<unknown>(null);
-  const { data, isLoading, isError } = useEditorConfig(id, isOfficeFile(mimeType));
+  const editorRef = useRef<{ destroyEditor?: () => void } | null>(null);
+  const [editorError, setEditorError] = useState<string | null>(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const { data, isLoading, isError, error } = useEditorConfig(id, isOfficeFile(mimeType));
 
+  // Step 1: load the ONLYOFFICE api.js script once
   useEffect(() => {
-    if (!data || !containerRef.current) return;
+    if (!data) return;
 
     const scriptId = 'onlyoffice-api-script';
-    const existingScript = document.getElementById(scriptId);
+    const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
 
-    function initEditor() {
+    if (existing) {
       // @ts-expect-error — ONLYOFFICE global
-      if (!window.DocsAPI) return;
-      if (editorRef.current) return;
-      // @ts-expect-error — ONLYOFFICE global
-      editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-container', data.config);
+      if (window.DocsAPI) {
+        setScriptLoaded(true);
+      } else {
+        existing.addEventListener('load', () => setScriptLoaded(true), { once: true });
+        existing.addEventListener('error', () => setEditorError('Failed to load ONLYOFFICE editor'), { once: true });
+      }
+      return;
     }
 
-    if (existingScript) {
-      initEditor();
-    } else {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = `${data.onlyofficeUrl}/web-apps/apps/api/documents/api.js`;
-      script.async = true;
-      script.onload = initEditor;
-      document.head.appendChild(script);
-    }
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${data.onlyofficeUrl}/web-apps/apps/api/documents/api.js`;
+    script.async = true;
+    script.onload = () => setScriptLoaded(true);
+    script.onerror = () => setEditorError('Failed to load ONLYOFFICE editor. Check that the server is reachable.');
+    document.head.appendChild(script);
+  }, [data]);
 
+  // Step 2: init editor after script is loaded and config is ready
+  useEffect(() => {
+    // @ts-expect-error — ONLYOFFICE global
+    if (!scriptLoaded || !data || !window.DocsAPI || editorRef.current) return;
+
+    try {
+      const config = {
+        ...data.config,
+        height: '100%',
+        width: '100%',
+        events: {
+          onError: (event: { data: number }) => {
+            const codes: Record<number, string> = {
+              [-1]: 'Unknown error',
+              [-2]: 'Network error — ONLYOFFICE cannot download the file',
+              [-3]: 'Server connection error',
+              [-4]: 'File not found by ONLYOFFICE server',
+              [-7]: 'Download error — check that APP_URL is reachable from ONLYOFFICE',
+            };
+            setEditorError(codes[event.data] || `ONLYOFFICE error code: ${event.data}`);
+          },
+          onDocumentReady: () => {
+            setEditorError(null); // clear any transient errors
+          },
+        },
+      };
+
+      // @ts-expect-error — ONLYOFFICE global
+      editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-editor', config);
+    } catch (e) {
+      setEditorError(e instanceof Error ? e.message : 'Failed to initialize editor');
+    }
+  }, [scriptLoaded, data]);
+
+  // Cleanup: destroy editor on unmount to prevent memory leaks and zombie WebSockets
+  useEffect(() => {
     return () => {
-      if (editorRef.current && typeof (editorRef.current as { destroyEditor?: () => void }).destroyEditor === 'function') {
-        (editorRef.current as { destroyEditor: () => void }).destroyEditor();
+      if (editorRef.current?.destroyEditor) {
+        try { editorRef.current.destroyEditor(); } catch { /* ignore */ }
       }
       editorRef.current = null;
     };
-  }, [data]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -79,15 +118,27 @@ function OnlyOfficeViewer({ id, mimeType }: { id: string; mimeType: string }) {
     );
   }
 
-  if (isError || !data) {
+  if (isError) {
+    const msg = (error as Error)?.message || 'ONLYOFFICE is not configured';
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">Office preview not available. Download the file to view it.</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <AlertTriangle className="size-8 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">{msg}</p>
       </div>
     );
   }
 
-  return <div id="onlyoffice-container" ref={containerRef} className="h-full w-full" />;
+  if (editorError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <AlertTriangle className="size-8 text-destructive/50" />
+        <p className="max-w-md text-center text-sm text-muted-foreground">{editorError}</p>
+        <p className="text-xs text-muted-foreground/70">Download the file to view it instead.</p>
+      </div>
+    );
+  }
+
+  return <div id="onlyoffice-editor" className="h-full w-full" />;
 }
 
 export default function DocumentViewerPage() {
@@ -149,7 +200,7 @@ export default function DocumentViewerPage() {
       </div>
 
       {canPreview ? (
-        <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30">
+        <div className="flex-1 overflow-hidden rounded-lg border bg-muted/30" style={{ minHeight: '600px' }}>
           {isOfficeFile(doc.mimeType) ? (
             <OnlyOfficeViewer id={doc.uuid} mimeType={doc.mimeType!} />
           ) : doc.mimeType?.startsWith('image/') ? (

@@ -159,6 +159,7 @@ async function uploadZip(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// ponytail: ONLYOFFICE editor config — view-only mode with signed JWT
 async function getEditorConfig(req, res, next) {
   try {
     const config = require('../config');
@@ -185,20 +186,21 @@ async function getEditorConfig(req, res, next) {
       return res.status(400).json({ error: { message: 'File type not supported by ONLYOFFICE' } });
     }
 
-    // ponytail: short-lived token scoped to this document — don't leak user's session JWT
+    // Short-lived token for ONLYOFFICE to fetch the file (server-to-server)
     const fileToken = jwt.sign(
       { userId: req.user.id, organizationId: req.user.organizationId },
       config.jwtSecret,
-      { expiresIn: '10m' },
+      { expiresIn: '1h' },
     );
 
-    // ponytail: ONLYOFFICE fetches from the public app URL (must be reachable from the container)
     const downloadUrl = `${config.appUrl}/api/documents/${doc.uuid}/download?token=${fileToken}`;
+    const callbackUrl = `${config.appUrl}/api/documents/${doc.uuid}/onlyoffice-callback?token=${fileToken}`;
 
+    // ponytail: key must change when the file changes so ONLYOFFICE doesn't serve a cached version
     const editorConfig = {
       document: {
         fileType: ext,
-        key: `${doc.uuid}-${new Date(doc.updatedAt).getTime()}`,
+        key: `${doc.uuid}_${new Date(doc.updatedAt).getTime()}`,
         title: doc.originalName,
         url: downloadUrl,
         permissions: { edit: false, download: true, print: true },
@@ -206,16 +208,23 @@ async function getEditorConfig(req, res, next) {
       documentType,
       editorConfig: {
         mode: 'view',
+        callbackUrl,
         lang: 'en',
         customization: {
           forcesave: false,
           compactHeader: true,
           toolbarNoTabs: true,
+          hideRightMenu: true,
         },
       },
     };
 
-    const onlyofficeToken = jwt.sign(editorConfig, config.onlyofficeJwtSecret);
+    // Sign the config for ONLYOFFICE JWT verification
+    const payload = {
+      document: editorConfig.document,
+      editorConfig: editorConfig.editorConfig,
+    };
+    const onlyofficeToken = jwt.sign(payload, config.onlyofficeJwtSecret);
     editorConfig.token = onlyofficeToken;
 
     res.json({
@@ -225,4 +234,57 @@ async function getEditorConfig(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, getEditorConfig };
+// ponytail: ONLYOFFICE callback — called when user closes the editor or force-saves
+// Status codes: 1=editing, 2=ready to save, 4=close with no changes, 6=force save, 7=error
+async function onlyofficeCallback(req, res, next) {
+  try {
+    const { status, url } = req.body;
+
+    // Status 2 (save after close) or 6 (force save) — download the edited file and replace ours
+    if ((status === 2 || status === 6) && url) {
+      const fs = require('fs');
+      const https = require('https');
+      const http = require('http');
+      const config = require('../config');
+      const { resolveFilePath } = require('../lib/filePath');
+
+      const doc = await documentService.getById({
+        id: req.params.id,
+        userId: req.user.id,
+        organizationId: req.user.organizationId,
+      });
+
+      const absolutePath = resolveFilePath(doc.organization?.storagePath || '', doc.filePath);
+
+      // Download the edited file from ONLYOFFICE
+      const client = url.startsWith('https') ? https : http;
+      await new Promise((resolve, reject) => {
+        client.get(url, (response) => {
+          if (response.statusCode !== 200) {
+            reject(new Error(`Download failed: ${response.statusCode}`));
+            return;
+          }
+          const ws = fs.createWriteStream(absolutePath);
+          response.pipe(ws);
+          ws.on('finish', resolve);
+          ws.on('error', reject);
+        }).on('error', reject);
+      });
+
+      // Update the document's timestamp so the key changes (bust ONLYOFFICE cache)
+      const prisma = require('../lib/prisma');
+      await prisma.document.update({
+        where: { id: doc.id },
+        data: { updatedAt: new Date() },
+      });
+    }
+
+    // ONLYOFFICE expects { "error": 0 } for success
+    res.json({ error: 0 });
+  } catch (err) {
+    console.error('[onlyoffice-callback]', err.message);
+    res.json({ error: 0 }); // ponytail: always return 0 to avoid ONLYOFFICE retrying endlessly
+  }
+}
+
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, getEditorConfig, onlyofficeCallback };
