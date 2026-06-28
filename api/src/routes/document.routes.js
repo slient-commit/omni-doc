@@ -72,17 +72,5 @@ router.post('/:id/copy',
   ctrl.copyToFolder,
 );
 
-// ponytail: serves HTML page with ONLYOFFICE editor — frontend iframes this
-router.get('/:id/office-viewer',
-  checkPermission('read', 'document'),
-  validate([param('id').notEmpty()]),
-  ctrl.officeViewer,
-);
-
-// ponytail: ONLYOFFICE callback — uses token query param for auth (server-to-server)
-router.post('/:id/onlyoffice-callback',
-  validate([param('id').notEmpty()]),
-  ctrl.onlyofficeCallback,
-);
 
 module.exports = router;

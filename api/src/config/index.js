@@ -19,8 +19,6 @@ const config = {
   trashRetentionDays: parseInt(process.env.TRASH_RETENTION_DAYS, 10) || 30,
   orgRetentionDays: parseInt(process.env.ORG_RETENTION_DAYS, 10) || 30,
   zipExpiryHours: parseInt(process.env.ZIP_EXPIRY_HOURS, 10) || 24,
-  onlyofficeUrl: process.env.ONLYOFFICE_URL || '',
-  onlyofficeJwtSecret: process.env.ONLYOFFICE_JWT_SECRET || '',
 };
 
 module.exports = config;
