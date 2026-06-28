@@ -4,12 +4,15 @@ services:
     container_name: omni-doc-onlyoffice
     restart: unless-stopped
     environment:
-      # ponytail: JWT secret shared with omni-doc API to sign editor tokens
       JWT_SECRET: ${ONLYOFFICE_JWT_SECRET}
       JWT_HEADER: Authorization
       JWT_IN_BODY: "true"
+      # ponytail: required behind reverse proxy (Traefik)
+      USE_UNAUTHORIZED_STORAGE: "true"
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "true"
+      WOPI_ENABLED: "false"
     ports:
-      - "8443:443"
       - "8088:80"
     volumes:
       - onlyoffice-data:/var/www/onlyoffice/Data
