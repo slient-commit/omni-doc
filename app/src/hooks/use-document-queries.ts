@@ -27,22 +27,6 @@ export function useDocument(id: string) {
   });
 }
 
-export interface EditorConfig {
-  onlyofficeUrl: string;
-  documentKey: string;
-  config: Record<string, unknown>;
-}
-
-export function useEditorConfig(id: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['documents', id, 'editor-config'],
-    queryFn: () => api.get<EditorConfig>(`/documents/${id}/editor-config`).then((r) => r.data),
-    enabled: enabled && !!id,
-    retry: false,
-    staleTime: 5 * 60_000, // ponytail: config is stable, cache 5 min
-  });
-}
-
 export function useUploadDocument() {
   const qc = useQueryClient();
   return useMutation({

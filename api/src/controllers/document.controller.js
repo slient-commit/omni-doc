@@ -159,15 +159,15 @@ async function uploadZip(req, res, next) {
   } catch (err) { next(err); }
 }
 
-// ponytail: ONLYOFFICE editor config — generates signed config per official docs
-async function getEditorConfig(req, res, next) {
+// ponytail: serves a self-contained HTML page with ONLYOFFICE editor — iframe this from the frontend
+async function officeViewer(req, res, next) {
   try {
     const config = require('../config');
     const jwt = require('jsonwebtoken');
     const crypto = require('crypto');
 
     if (!config.onlyofficeUrl || !config.onlyofficeJwtSecret) {
-      return res.status(501).json({ error: { message: 'ONLYOFFICE is not configured' } });
+      return res.status(501).send('ONLYOFFICE is not configured');
     }
 
     const doc = await documentService.getById({
@@ -184,18 +184,15 @@ async function getEditorConfig(req, res, next) {
     };
     const documentType = typeMap[ext];
     if (!documentType) {
-      return res.status(400).json({ error: { message: 'File type not supported by ONLYOFFICE' } });
+      return res.status(400).send('File type not supported by ONLYOFFICE');
     }
 
-    // Short-lived token for ONLYOFFICE server-to-server file fetch
     const fileToken = jwt.sign(
       { userId: req.user.id, organizationId: req.user.organizationId },
       config.jwtSecret,
       { expiresIn: '1h' },
     );
 
-    // ponytail: key must be alphanumeric, max 128 chars, and change when file changes
-    // so ONLYOFFICE doesn't serve a cached old version
     const keySource = `${doc.uuid}${new Date(doc.updatedAt).getTime()}`;
     const documentKey = crypto.createHash('md5').update(keySource).digest('hex');
 
@@ -224,15 +221,43 @@ async function getEditorConfig(req, res, next) {
       },
     };
 
-    // Sign the config for ONLYOFFICE JWT verification
     const onlyofficeToken = jwt.sign(editorConfig, config.onlyofficeJwtSecret);
     editorConfig.token = onlyofficeToken;
 
-    res.json({
-      onlyofficeUrl: config.onlyofficeUrl,
-      documentKey, // ponytail: v8.1+ shardkey parameter
-      config: editorConfig,
-    });
+    const apiUrl = `${config.onlyofficeUrl}/web-apps/apps/api/documents/api.js?shardkey=${encodeURIComponent(documentKey)}`;
+
+    // ponytail: self-contained HTML — loads ONLYOFFICE api.js and mounts the editor
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${doc.originalName}</title>
+<style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#f5f5f5}
+#editor{height:100%}
+#error{display:none;height:100%;align-items:center;justify-content:center;font-family:system-ui;color:#666;text-align:center;padding:2rem}
+#error h3{margin:0 0 .5rem;color:#333}
+#error p{margin:0;font-size:.875rem}
+</style>
+</head><body>
+<div id="editor"></div>
+<div id="error"><div><h3>Preview unavailable</h3><p id="errMsg">Could not load the document editor.</p></div></div>
+<script src="${apiUrl}" onerror="showError('Cannot reach ONLYOFFICE Document Server')"></script>
+<script>
+function showError(msg){
+  document.getElementById('editor').style.display='none';
+  var el=document.getElementById('error');el.style.display='flex';
+  if(msg)document.getElementById('errMsg').textContent=msg;
+}
+if(typeof DocsAPI!=='undefined'){
+  try{
+    new DocsAPI.DocEditor('editor',${JSON.stringify(editorConfig)});
+  }catch(e){showError(e.message)}
+}else if(!document.querySelector('script[onerror]')){showError()}
+</script>
+</body></html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
   } catch (err) { next(err); }
 }
 
@@ -292,4 +317,4 @@ async function onlyofficeCallback(req, res, next) {
   }
 }
 
-module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, getEditorConfig, onlyofficeCallback };
+module.exports = { upload, list, getById, download, update, softDelete, hardDelete, restore, move, copyToFolder, uploadZip, officeViewer, onlyofficeCallback };
