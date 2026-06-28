@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useDocument, useEditorConfig } from '@/hooks/use-document-queries';
 import { useAuth } from '@/contexts/auth-context';
